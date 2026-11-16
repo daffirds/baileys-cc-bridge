@@ -93,8 +93,18 @@ type response struct {
 }
 
 // Start installs the sidecar if needed and starts it. It connects to WhatsApp on its own; watch
-// Events for "ready" (or "qr" when this Mac is not linked yet).
-func Start(ctx context.Context, o Options) (*Client, error) {
+// Events for "ready" (or "qr" when this Mac is not linked yet). Only one process at a time may be
+// connected: Start fails with ErrBusy while another holds the connection.
+func Start(ctx context.Context, o Options) (c *Client, err error) {
+	lock, err := lockConnection()
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err != nil {
+			lock.Close()
+		}
+	}()
 	dir, err := install(ctx, o.Log)
 	if err != nil {
 		return nil, err
@@ -127,7 +137,7 @@ func Start(ctx context.Context, o Options) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &Client{
+	c = &Client{
 		log:     o.Log,
 		stdin:   stdin,
 		pending: map[int64]chan response{},
@@ -144,6 +154,7 @@ func Start(ctx context.Context, o Options) (*Client, error) {
 	go func() {
 		reads.Wait() // the pipes must be drained before Wait closes them
 		err := cmd.Wait()
+		lock.Close()
 		c.mu.Lock()
 		c.closed, c.err = true, err
 		for id, ch := range c.pending {

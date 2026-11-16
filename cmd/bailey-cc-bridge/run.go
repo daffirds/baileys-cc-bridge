@@ -46,6 +46,12 @@ func runRun(ctx context.Context, args []string) error {
 	}
 	defer wa.Close()
 	log.Info("connected to WhatsApp", "account", me.ID)
+	// Refresh the group list the config UI offers: it can't connect itself while this runs.
+	go func() {
+		if _, err := wa.Groups(ctx); err != nil {
+			log.Debug("could not list groups", "err", err)
+		}
+	}()
 	for _, c := range cfg.Chats {
 		log.Info("bridging", "chat", c.Name, "jid", c.JID, "engine", c.Engine, "autonomy", c.Autonomy)
 	}

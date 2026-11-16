@@ -55,11 +55,14 @@ type Group struct {
 	Size int    `json:"size"`
 }
 
-// Groups lists the groups this account is in.
+// Groups lists the groups this account is in, and remembers them for CachedGroups.
 func (c *Client) Groups(ctx context.Context) ([]Group, error) {
 	var res struct {
 		Groups []Group `json:"groups"`
 	}
-	err := c.Call(ctx, "chats", nil, &res)
-	return res.Groups, err
+	if err := c.Call(ctx, "chats", nil, &res); err != nil {
+		return nil, err
+	}
+	saveGroups(res.Groups)
+	return res.Groups, nil
 }
