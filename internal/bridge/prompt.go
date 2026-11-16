@@ -30,7 +30,7 @@ func instructions(chat *config.Chat, me *whatsapp.Me, owner string) string {
 You run unattended on %[1]s's Mac, connected to the WhatsApp chat %[2]q (%[3]s, %[4]s) through %[1]s's account (+%[5]s).
 
 - Nobody sees your text output. Act only through the whatsapp tools (send_message, send_file, send_sticker, react); what you send comes from %[1]s's account.
-- Every chat message reaches you as a <message> (or <reaction>, <edit>, <deleted>) block, also mid-task. owner="true" marks %[1]s.
+- Every chat message reaches you as a <message> (or <reaction>, <edit>, <deleted>) block, also mid-task. owner="true" marks %[1]s; mentions_you="true" means it @mentions this account.
 - Not every message needs a reply.
 - Attachments are already saved locally: see the file attribute.
 - Write like texting: short, WhatsApp formatting (*bold* _italic_ ~strike~ `+"```code```"+`), no Markdown headings or tables.
@@ -89,13 +89,21 @@ func (s *session) renderOne(m *whatsapp.Message) string {
 	var body strings.Builder
 	if q := m.Quoted; q != nil {
 		attrs = append(attrs, attr("reply_to", q.ID))
-		who := "+" + user(q.Sender)
+		who := b.personName(whatsapp.Person{JID: q.Sender, Name: q.SenderName})
 		if n, ok := b.notesGet(q.ID); ok {
 			who = n.from
-		} else if q.Sender == b.me.ID {
-			who = b.ownerName()
 		}
 		fmt.Fprintf(&body, "<quote from=%q>%s</quote>\n", html.EscapeString(who), q.Text)
+	}
+	if len(m.Mentions) > 0 {
+		var names []string
+		for _, p := range m.Mentions {
+			names = append(names, b.personName(p))
+			if p.JID == b.me.ID {
+				attrs = append(attrs, `mentions_you="true"`)
+			}
+		}
+		attrs = append(attrs, attr("mentions", strings.Join(names, ", ")))
 	}
 	switch m.Forwarded {
 	case "yes":
@@ -138,6 +146,28 @@ func (s *session) target(id string) []string {
 		out = append(out, attr("excerpt", n.text))
 	}
 	return out
+}
+
+// personName shows someone as "Name (+number)", "+number", "Name" or, failing all, their JID.
+func (b *Bridge) personName(p whatsapp.Person) string {
+	if p.JID == b.me.ID {
+		return b.ownerName() + " (+" + user(p.JID) + ")"
+	}
+	number := ""
+	if strings.HasSuffix(p.JID, "@s.whatsapp.net") {
+		number = "+" + user(p.JID)
+	}
+	switch {
+	case p.Name != "" && number != "":
+		return p.Name + " (" + number + ")"
+	case number != "":
+		return number
+	case p.Name != "":
+		return p.Name
+	case p.JID != "":
+		return p.JID
+	}
+	return "someone"
 }
 
 func (b *Bridge) notesGet(id string) (note, bool) {

@@ -31,6 +31,7 @@ import makeWASocket, {
 	toNumber,
 	useMultiFileAuthState,
 	type AnyMessageContent,
+	type Contact,
 	type MiscMessageGenerationOptions,
 	type WAMessage,
 	type WASocket,
@@ -89,6 +90,8 @@ function connect() {
 		getMessage: async (key) => recent.get(key.id ?? '')?.message ?? { conversation: '' },
 	});
 	sock.ev.on('creds.update', saveCreds);
+	sock.ev.on('contacts.upsert', learnContacts);
+	sock.ev.on('contacts.update', learnContacts);
 	sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
 		if (qr) onQR(qr);
 		if (connection === 'open') {
@@ -165,8 +168,9 @@ type Incoming = {
 type Body = {
 	kind: string; // text | image | video | audio | document | sticker | location | contact | poll | reaction | edit | revoke | unsupported
 	text?: string; // text, caption, or the new text of an edit
-	quoted?: { id: string; sender?: string; text?: string };
+	quoted?: { id: string; sender?: string; sender_name?: string; text?: string };
 	forwarded?: 'yes' | 'many';
+	mentions?: { jid: string; name?: string }[]; // @mentioned people; their @tokens in text use these numbers
 	media?: { mimetype?: string; size?: number; file_name?: string; seconds?: number; voice?: boolean };
 	reaction?: { id: string; emoji: string }; // emoji '' = removed
 	target?: string; // edit, revoke: the id of the message changed
@@ -184,6 +188,18 @@ async function onMessage(m: WAMessage) {
 	const chat = group ? remote : await phoneJid(remote, key.remoteJidAlt);
 	const raw = jidNormalizedUser(remote);
 	const sender = key.fromMe ? jidNormalizedUser(sock.user?.id) : group ? await phoneJid(key.participant, key.participantAlt) : chat;
+	if (!key.fromMe) learnName(sender, m.pushName);
+	const ctx = contextOf(content);
+	for (const j of ctx?.mentionedJid ?? []) {
+		const pn = await phoneJid(j, undefined);
+		// In groups that hide numbers, the text says @<private id>; show the number instead.
+		if (body.text && pn !== jidNormalizedUser(j)) body.text = body.text.replaceAll('@' + userOf(j), '@' + userOf(pn));
+		(body.mentions ??= []).push({ jid: pn, name: names.get(pn) });
+	}
+	if (body.quoted?.sender) {
+		body.quoted.sender = await phoneJid(body.quoted.sender, undefined);
+		body.quoted.sender_name = names.get(body.quoted.sender);
+	}
 	const out: Incoming = {
 		id: key.id,
 		chat,
@@ -195,6 +211,34 @@ async function onMessage(m: WAMessage) {
 		...body,
 	};
 	emit({ type: 'message', message: out });
+}
+
+// People's names by JID: the name saved in the address book when WhatsApp synced one, else the
+// name they gave themselves.
+const names = new Map<string, string>();
+const savedNames = new Set<string>();
+
+function learnName(jid: string | null | undefined, name: string | null | undefined, saved = false) {
+	if (!jid || !name) return;
+	const key = jidNormalizedUser(jid);
+	if (saved) savedNames.add(key);
+	else if (savedNames.has(key)) return;
+	names.set(key, name);
+}
+
+function learnContacts(contacts: Partial<Contact>[]) {
+	for (const c of contacts) {
+		const jid = c.phoneNumber ?? c.id;
+		if (c.name) learnName(jid, c.name, true);
+		else learnName(jid, c.notify ?? c.verifiedName);
+	}
+}
+
+const userOf = (jid: string) => jid.split('@')[0].split(':')[0];
+
+function contextOf(c: proto.IMessage): proto.IContextInfo | undefined {
+	const type = getContentType(c);
+	return type ? (((c[type] ?? {}) as Node).contextInfo ?? undefined) : undefined;
 }
 
 // phoneJid turns a @lid JID into its phone-number JID when WhatsApp sent the alternative along or

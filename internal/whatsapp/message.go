@@ -18,6 +18,7 @@ type Message struct {
 	Text      string    `json:"text,omitempty"`
 	Quoted    *Quoted   `json:"quoted,omitempty"`
 	Forwarded string    `json:"forwarded,omitempty"` // yes | many (WhatsApp's "forwarded many times")
+	Mentions  []Person  `json:"mentions,omitempty"`  // @mentioned people; their @tokens in Text use these numbers
 	Media     *Media    `json:"media,omitempty"`
 	Reaction  *Reaction `json:"reaction,omitempty"`
 	Target    string    `json:"target,omitempty"` // edit, revoke: the id of the message changed
@@ -25,9 +26,17 @@ type Message struct {
 
 // Quoted is the message a reply quotes.
 type Quoted struct {
-	ID     string `json:"id"`
-	Sender string `json:"sender,omitempty"`
-	Text   string `json:"text,omitempty"`
+	ID         string `json:"id"`
+	Sender     string `json:"sender,omitempty"`
+	SenderName string `json:"sender_name,omitempty"`
+	Text       string `json:"text,omitempty"`
+}
+
+// Person is someone on WhatsApp: a phone-number JID when known (an @lid JID otherwise) and the name
+// the sidecar has learned for them, if any.
+type Person struct {
+	JID  string `json:"jid"`
+	Name string `json:"name,omitempty"`
 }
 
 // Media describes an attachment; Client.Download fetches it.
