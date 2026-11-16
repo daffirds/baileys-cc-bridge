@@ -1,0 +1,22 @@
+# Copy to ~/.bailey-cc-bridge/config.yaml. `bailey-cc-bridge chats` lists the JIDs you can use.
+
+defaults:
+  engine: claude          # claude | codex
+  autonomy: auto          # auto (the engine's own reviewer) | full (no prompts) | readonly
+  model: ""               # "" = the CLI's default
+  idle_timeout: 30m       # stop an idle chat's CLI process; the next message resumes it
+  prompt: |
+    Keep replies short, like texting a friend.
+
+# Every message in these chats goes to that chat's own agent session. Everything else is ignored.
+chats:
+  # Your own "Message yourself" chat: a private line to your agent.
+  - jid: 6281234567890@s.whatsapp.net   # a phone number such as "+62 812-3456-7890" works too
+    name: Me
+
+  - jid: 120363012345678901@g.us
+    name: Project group
+    engine: codex
+    workdir: ~/Projects/Personal/scratch   # default: ~/.bailey-cc-bridge/chats/<chat>/
+    prompt: |
+      You help in this group. Only answer when someone asks you something.
