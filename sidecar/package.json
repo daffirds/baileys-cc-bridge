@@ -1,0 +1,20 @@
+{
+  "name": "bailey-cc-bridge-sidecar",
+  "private": true,
+  "type": "module",
+  "description": "Holds the WhatsApp connection (Baileys) for bailey-cc-bridge and speaks JSON lines on stdin/stdout.",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "check": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "baileys": "7.0.0-rc14",
+    "pino": "^9.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2"
+  }
+}
