@@ -9,8 +9,8 @@
 //            (methods: send_text, send_media, react, chat_info, download, chats, logout)
 // Responses: {"type":"response","id":1,"result":{…}}  or  {"type":"response","id":1,"error":"…"}
 
-import { createWriteStream } from 'node:fs';
-import { basename } from 'node:path';
+import { createWriteStream, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { pipeline } from 'node:stream/promises';
 import { format, parseArgs } from 'node:util';
@@ -215,16 +215,41 @@ async function onMessage(m: WAMessage) {
 }
 
 // People's names by JID: the name saved in the address book when WhatsApp synced one, else the
-// name they gave themselves.
+// name they gave themselves. Kept in names.json next to the credentials, so a restart doesn't
+// forget everyone.
 const names = new Map<string, string>();
 const savedNames = new Set<string>();
+const namesFile = join(dirname(opts.auth), 'names.json');
+let namesDirty = false;
+
+try {
+	const stored = JSON.parse(readFileSync(namesFile, 'utf8')) as { names?: Record<string, string>; saved?: string[] };
+	for (const [jid, name] of Object.entries(stored.names ?? {})) names.set(jid, name);
+	for (const jid of stored.saved ?? []) savedNames.add(jid);
+} catch {
+	// first run, or unreadable: start empty
+}
+
+function saveNames() {
+	if (!namesDirty) return;
+	namesDirty = false;
+	try {
+		writeFileSync(namesFile + '.tmp', JSON.stringify({ names: Object.fromEntries(names), saved: [...savedNames] }), { mode: 0o600 });
+		renameSync(namesFile + '.tmp', namesFile);
+	} catch (err) {
+		logger.warn({ err }, 'could not save names');
+	}
+}
+setInterval(saveNames, 10_000).unref();
 
 function learnName(jid: string | null | undefined, name: string | null | undefined, saved = false) {
 	if (!jid || !name) return;
 	const key = jidNormalizedUser(jid);
 	if (saved) savedNames.add(key);
 	else if (savedNames.has(key)) return;
+	if (names.get(key) === name) return;
 	names.set(key, name);
+	namesDirty = true;
 }
 
 function learnContacts(contacts: Partial<Contact>[]) {
@@ -517,6 +542,7 @@ rl.on('line', (line) => {
 // The Go side closes our stdin to stop us.
 rl.on('close', () => {
 	stopping = true;
+	saveNames();
 	void sock.end(undefined);
 	setTimeout(() => process.exit(0), 500);
 });

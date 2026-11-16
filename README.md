@@ -78,7 +78,8 @@ WhatsApp at a time: a second connection would make WhatsApp drop the first.
 ## Files
 
 `~/.bailey-cc-bridge/`: `config.yaml`, `auth/` (WhatsApp credentials), `state.json` (each chat's
-conversation id), `groups.json`, `sidecar/`, and `chats/<chat>/` with `work/`, `media/` and
+conversation id), `groups.json`, `names.json` (names learned from senders, for prompts and
+`chat_info`), `sidecar/`, and `chats/<chat>/` with `work/`, `media/` and
 `transcript.jsonl` (every protocol line to and from the CLI).
 
 ## Security
