@@ -6,7 +6,7 @@
 //            {"type":"ready","me":{"id":"…","lid":"…","name":"…"}}  {"type":"closed","reason":"…"}
 //            {"type":"message","message":{…}}  (see Incoming)
 // Requests:  {"id":1,"method":"send_text","params":{…}}
-//            (methods: send_text, send_media, react, download, chats, logout)
+//            (methods: send_text, send_media, react, chat_info, download, chats, logout)
 // Responses: {"type":"response","id":1,"result":{…}}  or  {"type":"response","id":1,"error":"…"}
 
 import { createWriteStream } from 'node:fs';
@@ -470,6 +470,19 @@ const methods: Record<string, (params: Json) => Promise<unknown>> = {
 		return {
 			groups: Object.values(groups).map((g) => ({ jid: g.id, name: g.subject ?? '', size: g.participants?.length ?? 0 })),
 		};
+	},
+	// Who is in a chat: a group's name, description and members, or a person's name.
+	async chat_info({ chat }) {
+		const jid = String(chat);
+		if (!isJidGroup(jid)) return { jid, name: names.get(jid) };
+		groupMeta.delete(jid); // always fresh
+		const md = await metadata(jid);
+		const members = [];
+		for (const p of md.participants) {
+			const pn = p.phoneNumber ? jidNormalizedUser(p.phoneNumber) : await phoneJid(p.id, undefined);
+			members.push({ jid: pn, name: names.get(pn), admin: p.admin ?? undefined });
+		}
+		return { jid, name: md.subject, description: md.desc, members };
 	},
 	// Save the media of a recent message to a local file.
 	async download({ id, path }) {

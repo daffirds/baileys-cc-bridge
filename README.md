@@ -58,6 +58,7 @@ The agent gets an MCP server named `whatsapp`, bound to its chat:
 | `send_file` | photo, video or audio inline; anything else as a document; `voice` for OGG voice notes |
 | `send_sticker` | any image, converted to a 512×512 WebP |
 | `react` | emoji on a message (default: the latest one); empty removes it |
+| `chat_info` | a group's name, description and members (names, numbers, admins), or who a direct chat is with |
 
 `chat` can point a tool at another whitelisted chat, never at one outside the list. Incoming
 attachments are downloaded to `chats/<chat>/media/` and the path is given to the agent.

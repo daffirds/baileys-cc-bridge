@@ -21,11 +21,14 @@ type Sender interface {
 	SendText(ctx context.Context, chat, text string, o whatsapp.TextOptions) (string, error)
 	SendMedia(ctx context.Context, chat string, m whatsapp.OutMedia) (string, error)
 	React(ctx context.Context, id, emoji string) (string, error)
+	ChatInfo(ctx context.Context, chat string) (*whatsapp.ChatInfo, error)
 }
 
 // Binding ties a tool server to one session's chat.
 type Binding struct {
 	Chat    string // JID of the session's chat
+	Self    string // JID of this account
+	Owner   string // the account owner's name
 	Workdir string // relative paths resolve here
 	WA      Sender
 	// Resolve maps a chat name or JID to the JID of a whitelisted chat, or fails.
@@ -48,6 +51,9 @@ func newServer(b *Binding) *mcp.Server {
 		Description: "Send an image (PNG, JPEG, WebP, GIF) as a sticker."}, b.sendSticker)
 	mcp.AddTool(s, &mcp.Tool{Name: "react",
 		Description: "React to a message with an emoji (default: the latest message in this chat). Empty emoji removes your reaction."}, b.react)
+	mcp.AddTool(s, &mcp.Tool{Name: "chat_info",
+		Description: "Who is in the chat: a group's name, description and members (names, numbers, admins), or who a direct chat is with.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, b.chatInfo)
 	return s
 }
 
@@ -181,6 +187,50 @@ func (b *Binding) react(ctx context.Context, _ *mcp.CallToolRequest, in reactIn)
 	}
 	b.Sent(b.Chat, rid, "")
 	return text("Reacted to %s.", id)
+}
+
+type chatInfoIn struct {
+	Chat string `json:"chat,omitempty" jsonschema:"another whitelisted chat (name or JID); default: this chat"`
+}
+
+func (b *Binding) chatInfo(ctx context.Context, _ *mcp.CallToolRequest, in chatInfoIn) (*mcp.CallToolResult, any, error) {
+	chat, err := b.target(in.Chat)
+	if err != nil {
+		return nil, nil, err
+	}
+	info, err := b.WA.ChatInfo(ctx, chat)
+	if err != nil {
+		return nil, nil, err
+	}
+	if !strings.HasSuffix(chat, "@g.us") {
+		if chat == b.Self {
+			return text("%s's own \"Message yourself\" chat (%s).", b.Owner, chat)
+		}
+		return text("Direct chat with %s (%s).", whatsapp.Person{JID: info.JID, Name: info.Name}.Label(), chat)
+	}
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "%s (group, %s)\n", info.Name, chat)
+	if d := strings.TrimSpace(info.Description); d != "" {
+		fmt.Fprintf(&sb, "Description: %s\n", d)
+	}
+	fmt.Fprintf(&sb, "%d members:\n", len(info.Members))
+	for _, m := range info.Members {
+		p := m.Person
+		var tags []string
+		if p.JID == b.Self {
+			p.Name = b.Owner
+			tags = append(tags, "this account")
+		}
+		if m.Admin != "" {
+			tags = append(tags, m.Admin)
+		}
+		line := "- " + p.Label()
+		if len(tags) > 0 {
+			line += " (" + strings.Join(tags, ", ") + ")"
+		}
+		sb.WriteString(line + "\n")
+	}
+	return text("%s", strings.TrimSpace(sb.String()))
 }
 
 func (b *Binding) target(chat string) (string, error) {

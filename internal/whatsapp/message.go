@@ -2,6 +2,7 @@ package whatsapp
 
 import (
 	"context"
+	"strings"
 	"time"
 )
 
@@ -37,6 +38,47 @@ type Quoted struct {
 type Person struct {
 	JID  string `json:"jid"`
 	Name string `json:"name,omitempty"`
+}
+
+// Label shows a person as "Name (+number)", "+number", "Name" or, failing those, their JID.
+func (p Person) Label() string {
+	number := ""
+	if user, server, _ := strings.Cut(p.JID, "@"); server == "s.whatsapp.net" {
+		number = "+" + user
+	}
+	switch {
+	case p.Name != "" && number != "":
+		return p.Name + " (" + number + ")"
+	case number != "":
+		return number
+	case p.Name != "":
+		return p.Name
+	case p.JID != "":
+		return p.JID
+	}
+	return "someone"
+}
+
+// ChatInfo describes a chat: for a group its name, description and members; for a person, who.
+type ChatInfo struct {
+	JID         string   `json:"jid"`
+	Name        string   `json:"name,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Members     []Member `json:"members,omitempty"`
+}
+
+type Member struct {
+	Person
+	Admin string `json:"admin,omitempty"` // admin | superadmin
+}
+
+// ChatInfo fetches a chat's details (a group's member list is always fetched fresh).
+func (c *Client) ChatInfo(ctx context.Context, chat string) (*ChatInfo, error) {
+	var info ChatInfo
+	if err := c.Call(ctx, "chat_info", map[string]string{"chat": chat}, &info); err != nil {
+		return nil, err
+	}
+	return &info, nil
 }
 
 // Media describes an attachment; Client.Download fetches it.

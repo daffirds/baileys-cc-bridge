@@ -218,7 +218,7 @@ func (s *session) start() error {
 		resume = ""
 	}
 	s.mcpPath = s.b.host.Register(&tools.Binding{
-		Chat: s.chat.JID, Workdir: workdir, WA: s.b.wa,
+		Chat: s.chat.JID, Self: s.b.me.ID, Owner: s.b.ownerName(), Workdir: workdir, WA: s.b.wa,
 		Resolve: s.b.resolve, LastIncoming: s.b.lastIncoming, Sent: s.b.sent, Log: s.log,
 	})
 	s.transcript, _ = os.OpenFile(filepath.Join(s.dir, "transcript.jsonl"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
