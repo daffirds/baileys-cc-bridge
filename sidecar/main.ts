@@ -5,10 +5,12 @@
 // Events:    {"type":"qr","qr":"…"}  {"type":"pairing_code","code":"…"}
 //            {"type":"ready","me":{"id":"…","lid":"…","name":"…"}}  {"type":"closed","reason":"…"}
 //            {"type":"message","message":{…}}  (see Incoming)
-// Requests:  {"id":1,"method":"chats","params":{}}  (methods: chats, download, logout)
+// Requests:  {"id":1,"method":"send_text","params":{…}}
+//            (methods: send_text, send_media, react, download, chats, logout)
 // Responses: {"type":"response","id":1,"result":{…}}  or  {"type":"response","id":1,"error":"…"}
 
 import { createWriteStream } from 'node:fs';
+import { basename } from 'node:path';
 import { createInterface } from 'node:readline';
 import { pipeline } from 'node:stream/promises';
 import { format, parseArgs } from 'node:util';
@@ -28,10 +30,13 @@ import makeWASocket, {
 	proto,
 	toNumber,
 	useMultiFileAuthState,
+	type AnyMessageContent,
+	type MiscMessageGenerationOptions,
 	type WAMessage,
 	type WASocket,
 } from 'baileys';
 import pino from 'pino';
+import sharp from 'sharp';
 
 // stdout carries the protocol. Anything a library prints to the console (libsignal does) goes to stderr.
 for (const level of ['log', 'info', 'warn', 'error', 'debug', 'trace'] as const) {
@@ -80,8 +85,8 @@ function connect() {
 		markOnlineOnConnect: false,
 		syncFullHistory: false,
 		// Required on Baileys 7: without it, a message whose encryption session has to be
-		// re-established is dropped instead of retried.
-		getMessage: async () => ({ conversation: '' }),
+		// re-established is dropped instead of retried. A retry of our own message resends it.
+		getMessage: async (key) => recent.get(key.id ?? '')?.message ?? { conversation: '' },
 	});
 	sock.ev.on('creds.update', saveCreds);
 	sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
@@ -300,9 +305,74 @@ function excerpt(s: string): string {
 	return s.length > 300 ? s.slice(0, 300) + '…' : s;
 }
 
+// --- outgoing messages ---
+
+function quoting(replyTo: unknown): MiscMessageGenerationOptions | undefined {
+	if (!replyTo) return undefined;
+	const quoted = recent.get(String(replyTo));
+	if (!quoted) throw new Error(`message ${replyTo} is not among the recent messages`);
+	return { quoted };
+}
+
+async function send(chat: unknown, content: AnyMessageContent, options?: MiscMessageGenerationOptions) {
+	const sent = await sock.sendMessage(String(chat), content, options);
+	remember(sent);
+	return { id: sent?.key.id };
+}
+
+// WhatsApp stickers are 512×512 WebP: anything else is letterboxed onto a transparent square.
+function sticker(path: string): Promise<Buffer> {
+	return sharp(path, { animated: true })
+		.resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+		.webp({ quality: 80 })
+		.toBuffer();
+}
+
 // --- requests ---
 
 const methods: Record<string, (params: Json) => Promise<unknown>> = {
+	// Text, optionally quoting a recent message.
+	async send_text({ chat, text, reply_to }) {
+		return send(chat, { text: String(text) }, quoting(reply_to));
+	},
+	// A local file sent as kind: image | video | audio | voice | document | sticker.
+	async send_media({ chat, path, kind, mimetype, caption, file_name, reply_to }) {
+		const file = { url: String(path) };
+		const type = mimetype ? String(mimetype) : undefined;
+		const cap = caption ? { caption: String(caption) } : {};
+		let content: AnyMessageContent;
+		switch (kind) {
+			case 'image':
+				content = { image: file, mimetype: type, ...cap };
+				break;
+			case 'video':
+				content = { video: file, mimetype: type, ...cap };
+				break;
+			case 'audio': // the real mimetype, or Baileys labels every clip as Opus
+				content = { audio: file, mimetype: type };
+				break;
+			case 'voice':
+				content = { audio: file, mimetype: 'audio/ogg; codecs=opus', ptt: true };
+				break;
+			case 'sticker':
+				content = { sticker: await sticker(String(path)) };
+				break;
+			default:
+				content = {
+					document: file,
+					mimetype: type ?? 'application/octet-stream',
+					fileName: file_name ? String(file_name) : basename(String(path)),
+					...cap,
+				};
+		}
+		return send(chat, content, quoting(reply_to));
+	},
+	// A reaction on a recent message; an empty emoji takes ours off.
+	async react({ id, emoji }) {
+		const target = recent.get(String(id));
+		if (!target?.key.remoteJid) throw new Error(`message ${id} is not among the recent messages`);
+		return send(target.key.remoteJid, { react: { text: String(emoji ?? ''), key: target.key } });
+	},
 	// The groups this account is in. People need no listing: their phone number is their JID.
 	async chats() {
 		const groups = await sock.groupFetchAllParticipating();

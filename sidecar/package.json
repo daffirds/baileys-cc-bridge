@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "baileys": "7.0.0-rc14",
-    "pino": "^9.6.0"
+    "pino": "^9.6.0",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
