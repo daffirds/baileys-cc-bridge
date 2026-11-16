@@ -54,7 +54,7 @@ The agent gets an MCP server named `whatsapp`, bound to its chat:
 
 | Tool | |
 |---|---|
-| `send_message` | text, optionally quoting a message (`reply_to`) |
+| `send_message` | text; `reply_to` quotes a message, `mentions` @-mentions people by number, `mention_all` everyone in the group |
 | `send_file` | photo, video or audio inline; anything else as a document; `voice` for OGG voice notes |
 | `send_sticker` | any image, converted to a 512×512 WebP |
 | `react` | emoji on a message (default: the latest one); empty removes it |

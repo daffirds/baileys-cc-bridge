@@ -32,6 +32,7 @@ import makeWASocket, {
 	useMultiFileAuthState,
 	type AnyMessageContent,
 	type Contact,
+	type GroupMetadata,
 	type MiscMessageGenerationOptions,
 	type WAMessage,
 	type WASocket,
@@ -374,6 +375,40 @@ async function send(chat: unknown, content: AnyMessageContent, options?: MiscMes
 	return { id: sent?.key.id };
 }
 
+// Group metadata, cached for a minute: mentions need the member list.
+const groupMeta = new Map<string, { at: number; md: GroupMetadata }>();
+
+async function metadata(jid: string): Promise<GroupMetadata> {
+	const hit = groupMeta.get(jid);
+	if (hit && Date.now() - hit.at < 60_000) return hit.md;
+	const md = await sock.groupMetadata(jid);
+	groupMeta.set(jid, { at: Date.now(), md });
+	return md;
+}
+
+// mentionsFor turns phone-number JIDs into the JIDs a group knows its members by (@lid in groups
+// that hide numbers) and rewrites their @tokens in the text to match, so the mentions render. all
+// adds every other member: they all get notified without a token each.
+async function mentionsFor(chat: string, text: string, wanted: string[], all: boolean) {
+	if (!isJidGroup(chat)) return { text, jids: wanted };
+	const md = await metadata(chat);
+	const jids = new Set<string>();
+	for (const pn of wanted) {
+		const p = md.participants.find((p) => jidNormalizedUser(p.id) === pn || (p.phoneNumber && jidNormalizedUser(p.phoneNumber) === pn));
+		const id = p ? jidNormalizedUser(p.id) : pn;
+		if (id !== pn) text = text.replaceAll('@' + userOf(pn), '@' + userOf(id));
+		jids.add(id);
+	}
+	if (all) {
+		const me = [jidNormalizedUser(sock.user?.id), sock.user?.lid ? jidNormalizedUser(sock.user.lid) : ''];
+		for (const p of md.participants) {
+			const id = jidNormalizedUser(p.id);
+			if (!me.includes(id)) jids.add(id);
+		}
+	}
+	return { text, jids: [...jids] };
+}
+
 // WhatsApp stickers are 512×512 WebP: anything else is letterboxed onto a transparent square.
 function sticker(path: string): Promise<Buffer> {
 	return sharp(path, { animated: true })
@@ -385,9 +420,11 @@ function sticker(path: string): Promise<Buffer> {
 // --- requests ---
 
 const methods: Record<string, (params: Json) => Promise<unknown>> = {
-	// Text, optionally quoting a recent message.
-	async send_text({ chat, text, reply_to }) {
-		return send(chat, { text: String(text) }, quoting(reply_to));
+	// Text, optionally quoting a recent message and @mentioning people (phone-number JIDs) or everyone.
+	async send_text({ chat, text, reply_to, mentions, mention_all }) {
+		const wanted = Array.isArray(mentions) ? mentions.map(String) : [];
+		const m = await mentionsFor(String(chat), String(text), wanted, Boolean(mention_all));
+		return send(chat, m.jids.length ? { text: m.text, mentions: m.jids } : { text: m.text }, quoting(reply_to));
 	},
 	// A local file sent as kind: image | video | audio | voice | document | sticker.
 	async send_media({ chat, path, kind, mimetype, caption, file_name, reply_to }) {

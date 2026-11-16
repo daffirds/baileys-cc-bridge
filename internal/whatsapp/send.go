@@ -33,11 +33,21 @@ type sent struct {
 	ID string `json:"id"`
 }
 
-// SendText sends text to chat, quoting the recent message replyTo if set. It returns the new
-// message's id.
-func (c *Client) SendText(ctx context.Context, chat, text, replyTo string) (string, error) {
+// TextOptions are the extras of a text message.
+type TextOptions struct {
+	ReplyTo    string   `json:"reply_to,omitempty"`    // id of a recent message to quote
+	Mentions   []string `json:"mentions,omitempty"`    // phone-number JIDs to @mention; the text carries @<number> for each
+	MentionAll bool     `json:"mention_all,omitempty"` // @mention every member of the group
+}
+
+// SendText sends text to chat and returns the new message's id.
+func (c *Client) SendText(ctx context.Context, chat, text string, o TextOptions) (string, error) {
 	var res sent
-	err := c.Call(ctx, "send_text", map[string]string{"chat": chat, "text": text, "reply_to": replyTo}, &res)
+	err := c.Call(ctx, "send_text", struct {
+		Chat string `json:"chat"`
+		Text string `json:"text"`
+		TextOptions
+	}{chat, text, o}, &res)
 	return res.ID, err
 }
 

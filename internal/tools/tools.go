@@ -12,12 +12,13 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/daffirds/bailey-cc-bridge/internal/app"
+	"github.com/daffirds/bailey-cc-bridge/internal/config"
 	"github.com/daffirds/bailey-cc-bridge/internal/whatsapp"
 )
 
 // Sender is the part of the WhatsApp client the tools use.
 type Sender interface {
-	SendText(ctx context.Context, chat, text, replyTo string) (string, error)
+	SendText(ctx context.Context, chat, text string, o whatsapp.TextOptions) (string, error)
 	SendMedia(ctx context.Context, chat string, m whatsapp.OutMedia) (string, error)
 	React(ctx context.Context, id, emoji string) (string, error)
 }
@@ -39,7 +40,8 @@ type Binding struct {
 func newServer(b *Binding) *mcp.Server {
 	s := mcp.NewServer(&mcp.Implementation{Name: app.Name, Version: app.Version}, nil)
 	mcp.AddTool(s, &mcp.Tool{Name: "send_message",
-		Description: "Send a text message. WhatsApp formatting: *bold* _italic_ ~strike~ ```code```."}, b.sendMessage)
+		Description: "Send a text message. WhatsApp formatting: *bold* _italic_ ~strike~ ```code```. " +
+			"To @mention someone, list their number in mentions and write @<number> in the text."}, b.sendMessage)
 	mcp.AddTool(s, &mcp.Tool{Name: "send_file",
 		Description: "Send a local file. JPEG/PNG photos, MP4 videos and audio show inline; anything else goes as a document."}, b.sendFile)
 	mcp.AddTool(s, &mcp.Tool{Name: "send_sticker",
@@ -54,9 +56,11 @@ func text(format string, args ...any) (*mcp.CallToolResult, any, error) {
 }
 
 type messageIn struct {
-	Text    string `json:"text"`
-	ReplyTo string `json:"reply_to,omitempty" jsonschema:"id of a message to quote"`
-	Chat    string `json:"chat,omitempty" jsonschema:"another whitelisted chat (name or JID); default: this chat"`
+	Text       string   `json:"text"`
+	ReplyTo    string   `json:"reply_to,omitempty" jsonschema:"id of a message to quote"`
+	Mentions   []string `json:"mentions,omitempty" jsonschema:"people to @mention, by phone number with country code"`
+	MentionAll bool     `json:"mention_all,omitempty" jsonschema:"@mention everyone in the group: all members get notified"`
+	Chat       string   `json:"chat,omitempty" jsonschema:"another whitelisted chat (name or JID); default: this chat"`
 }
 
 func (b *Binding) sendMessage(ctx context.Context, _ *mcp.CallToolRequest, in messageIn) (*mcp.CallToolResult, any, error) {
@@ -67,12 +71,36 @@ func (b *Binding) sendMessage(ctx context.Context, _ *mcp.CallToolRequest, in me
 	if err != nil {
 		return nil, nil, err
 	}
-	id, err := b.WA.SendText(ctx, chat, in.Text, in.ReplyTo)
+	if in.MentionAll && !strings.HasSuffix(chat, "@g.us") {
+		return nil, nil, errors.New("mention_all only works in groups")
+	}
+	body, mentions, err := withMentions(in.Text, in.Mentions)
 	if err != nil {
 		return nil, nil, err
 	}
-	b.Sent(chat, id, in.Text)
+	id, err := b.WA.SendText(ctx, chat, body, whatsapp.TextOptions{ReplyTo: in.ReplyTo, Mentions: mentions, MentionAll: in.MentionAll})
+	if err != nil {
+		return nil, nil, err
+	}
+	b.Sent(chat, id, body)
 	return text("Sent (id %s).", id)
+}
+
+// withMentions turns the numbers to mention into JIDs. Someone listed but not written as @<number>
+// in the text gets the token appended, so the mention is visible, not only a notification.
+func withMentions(text string, numbers []string) (string, []string, error) {
+	var jids []string
+	for _, n := range numbers {
+		jid, err := config.NormalizeJID(n)
+		if err != nil {
+			return "", nil, fmt.Errorf("mentions: %w", err)
+		}
+		jids = append(jids, jid)
+		if token := "@" + strings.Split(jid, "@")[0]; !strings.Contains(text, token) {
+			text += " " + token
+		}
+	}
+	return text, jids, nil
 }
 
 type fileIn struct {
