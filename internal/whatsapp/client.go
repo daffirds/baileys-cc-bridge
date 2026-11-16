@@ -55,11 +55,12 @@ type Options struct {
 
 // Event is something the sidecar reports on its own.
 type Event struct {
-	Type   string `json:"type"` // qr | pairing_code | ready | closed
-	QR     string `json:"qr,omitempty"`
-	Code   string `json:"code,omitempty"`
-	Me     *Me    `json:"me,omitempty"`
-	Reason string `json:"reason,omitempty"` // closed: logged_out | forbidden | …
+	Type    string   `json:"type"` // qr | pairing_code | ready | closed | message
+	QR      string   `json:"qr,omitempty"`
+	Code    string   `json:"code,omitempty"`
+	Me      *Me      `json:"me,omitempty"`
+	Reason  string   `json:"reason,omitempty"` // closed: logged_out | forbidden | …
+	Message *Message `json:"message,omitempty"`
 }
 
 // Me is the linked account.
