@@ -4,7 +4,7 @@
 //
 // Events:    {"type":"qr","qr":"…"}  {"type":"pairing_code","code":"…"}
 //            {"type":"ready","me":{"id":"…","lid":"…","name":"…"}}  {"type":"closed","reason":"…"}
-// Requests:  {"id":1,"method":"logout","params":{}}
+// Requests:  {"id":1,"method":"chats","params":{}}  (methods: chats, logout)
 // Responses: {"type":"response","id":1,"result":{…}}  or  {"type":"response","id":1,"error":"…"}
 
 import { createInterface } from 'node:readline';
@@ -111,6 +111,13 @@ function onQR(qr: string) {
 }
 
 const methods: Record<string, (params: Json) => Promise<unknown>> = {
+	// The groups this account is in. People need no listing: their phone number is their JID.
+	async chats() {
+		const groups = await sock.groupFetchAllParticipating();
+		return {
+			groups: Object.values(groups).map((g) => ({ jid: g.id, name: g.subject ?? '', size: g.participants?.length ?? 0 })),
+		};
+	},
 	async logout() {
 		stopping = true;
 		await sock.logout();

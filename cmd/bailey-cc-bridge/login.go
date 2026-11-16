@@ -133,24 +133,10 @@ func runLogout(ctx context.Context, args []string) error {
 func unlink(ctx context.Context, debug bool) error {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute)
 	defer cancel()
-	wa, err := whatsapp.Start(ctx, whatsapp.Options{Debug: debug, Log: newLogger(debug)})
+	wa, _, err := whatsapp.Connect(ctx, whatsapp.Options{Debug: debug, Log: newLogger(debug)})
 	if err != nil {
 		return err
 	}
 	defer wa.Close()
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-wa.Done():
-			return fmt.Errorf("whatsapp sidecar exited: %v", wa.Err())
-		case ev := <-wa.Events():
-			switch ev.Type {
-			case "ready":
-				return wa.Call(ctx, "logout", nil, nil)
-			case "qr", "closed":
-				return errors.New("this device is no longer linked")
-			}
-		}
-	}
+	return wa.Call(ctx, "logout", nil, nil)
 }

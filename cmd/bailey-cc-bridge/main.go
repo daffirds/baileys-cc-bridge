@@ -22,6 +22,7 @@ type command struct {
 var commands = []command{
 	{"login", "Link this Mac to your WhatsApp account (QR code, or -phone for a pairing code)", runLogin},
 	{"logout", "Unlink this Mac and delete its WhatsApp credentials", runLogout},
+	{"chats", "List your groups and your own JID, for the whitelist in config.yaml", runChats},
 	{"version", "Print the version", func(context.Context, []string) error {
 		fmt.Println(app.Name, app.Version)
 		return nil
