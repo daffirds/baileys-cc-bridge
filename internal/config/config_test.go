@@ -68,3 +68,35 @@ func TestLoadRejectsUnknownEngine(t *testing.T) {
 		t.Fatal("accepted engine gpt")
 	}
 }
+
+func TestSaveKeepsWhatWasWritten(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	in := &Config{
+		Defaults: Agent{IdleTimeout: Duration(90 * time.Minute)},
+		Chats:    []Chat{{JID: "6281234567890@s.whatsapp.net", Name: "Me", Agent: Agent{Engine: EngineCodex, Prompt: "line one\nline two"}}},
+	}
+	if err := Save(path, in); err != nil {
+		t.Fatal(err)
+	}
+	out, err := Read(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out.Defaults.Engine != "" || out.Defaults.IdleTimeout.String() != "1h30m" {
+		t.Errorf("defaults = %+v (defaults must not be filled in)", out.Defaults)
+	}
+	if c := out.Chats[0]; c.Engine != EngineCodex || c.Prompt != "line one\nline two" || c.Autonomy != "" {
+		t.Errorf("chat = %+v", c)
+	}
+	if err := Save(path, &Config{Chats: []Chat{{JID: "nope"}}}); err == nil {
+		t.Error("saved an invalid JID")
+	}
+}
+
+func TestDurationString(t *testing.T) {
+	for d, want := range map[time.Duration]string{30 * time.Minute: "30m", time.Hour: "1h", 90 * time.Minute: "1h30m", 40 * time.Second: "40s"} {
+		if got := Duration(d).String(); got != want {
+			t.Errorf("Duration(%v) = %q, want %q", d, got, want)
+		}
+	}
+}
