@@ -82,15 +82,7 @@ func (s *session) run() {
 			return
 
 		case m := <-s.inbox:
-			batch := []*whatsapp.Message{m}
-			for more := true; more; {
-				select {
-				case m := <-s.inbox:
-					batch = append(batch, m)
-				default:
-					more = false
-				}
-			}
+			batch := s.collect(m)
 			if p := s.render(batch); p != "" {
 				s.pending = append(s.pending, p)
 			}
@@ -138,6 +130,46 @@ func (s *session) run() {
 				s.closeProcess()
 				events, exited = nil, nil
 			}
+		}
+	}
+}
+
+// A message that starts a turn waits until the chat has been quiet this long (at most maxSettle),
+// so a burst (several photos, a long thought split over messages) arrives as one prompt.
+const (
+	settle    = 1500 * time.Millisecond
+	maxSettle = 6 * time.Second
+)
+
+// collect gathers m and whatever follows it. Mid-turn nothing waits: messages are steered in as
+// they come.
+func (s *session) collect(m *whatsapp.Message) []*whatsapp.Message {
+	batch := []*whatsapp.Message{m}
+	if s.busy {
+		for {
+			select {
+			case m := <-s.inbox:
+				batch = append(batch, m)
+			default:
+				return batch
+			}
+		}
+	}
+	quiet := time.NewTimer(settle)
+	defer quiet.Stop()
+	deadline := time.NewTimer(maxSettle)
+	defer deadline.Stop()
+	for {
+		select {
+		case m := <-s.inbox:
+			batch = append(batch, m)
+			quiet.Reset(settle)
+		case <-quiet.C:
+			return batch
+		case <-deadline.C:
+			return batch
+		case <-s.ctx.Done():
+			return batch
 		}
 	}
 }
