@@ -22,9 +22,18 @@ import (
 	"github.com/daffirds/bailey-cc-bridge/internal/whatsapp"
 )
 
+// WhatsApp is the part of the sidecar client the bridge uses (*whatsapp.Client).
+type WhatsApp interface {
+	tools.Sender
+	Download(ctx context.Context, id, path string) error
+	Events() <-chan whatsapp.Event
+	Done() <-chan struct{}
+	Err() error
+}
+
 type Bridge struct {
 	cfgPath string
-	wa      *whatsapp.Client
+	wa      WhatsApp
 	me      *whatsapp.Me
 	host    *tools.Host
 	baseURL string // where host is served, e.g. http://127.0.0.1:53123
@@ -48,7 +57,7 @@ type note struct {
 }
 
 // New makes a bridge for cfg, which was loaded from cfgPath; Run reloads it when the file changes.
-func New(cfg *config.Config, cfgPath string, wa *whatsapp.Client, me *whatsapp.Me, host *tools.Host, baseURL string, log *slog.Logger) *Bridge {
+func New(cfg *config.Config, cfgPath string, wa WhatsApp, me *whatsapp.Me, host *tools.Host, baseURL string, log *slog.Logger) *Bridge {
 	return &Bridge{
 		cfg: cfg, cfgPath: cfgPath, wa: wa, me: me, host: host, baseURL: baseURL, log: log,
 		state:    loadState(filepath.Join(app.Home(), "state.json")),
