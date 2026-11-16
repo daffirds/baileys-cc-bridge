@@ -216,8 +216,10 @@ const MEDIA: Record<string, string> = {
 	stickerMessage: 'sticker',
 };
 
-// Message types that carry nothing worth telling an agent.
+// Message types that carry nothing worth telling an agent. An album header only announces how many
+// photos and videos follow; each of them arrives as its own message.
 const IGNORED = new Set([
+	'albumMessage',
 	'pollUpdateMessage',
 	'keepInChatMessage',
 	'pinInChatMessage',
