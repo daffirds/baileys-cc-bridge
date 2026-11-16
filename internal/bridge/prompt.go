@@ -97,6 +97,12 @@ func (s *session) renderOne(m *whatsapp.Message) string {
 		}
 		fmt.Fprintf(&body, "<quote from=%q>%s</quote>\n", html.EscapeString(who), q.Text)
 	}
+	switch m.Forwarded {
+	case "yes":
+		attrs = append(attrs, `forwarded="true"`)
+	case "many":
+		attrs = append(attrs, `forwarded="many times"`)
+	}
 	if m.Kind != "text" {
 		kind := m.Kind
 		if m.Media != nil && m.Media.Voice {

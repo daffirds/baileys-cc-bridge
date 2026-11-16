@@ -17,6 +17,7 @@ type Message struct {
 	Kind      string    `json:"kind"` // text | image | video | audio | document | sticker | location | contact | poll | reaction | edit | revoke | unsupported
 	Text      string    `json:"text,omitempty"`
 	Quoted    *Quoted   `json:"quoted,omitempty"`
+	Forwarded string    `json:"forwarded,omitempty"` // yes | many (WhatsApp's "forwarded many times")
 	Media     *Media    `json:"media,omitempty"`
 	Reaction  *Reaction `json:"reaction,omitempty"`
 	Target    string    `json:"target,omitempty"` // edit, revoke: the id of the message changed

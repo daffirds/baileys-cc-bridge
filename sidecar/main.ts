@@ -166,6 +166,7 @@ type Body = {
 	kind: string; // text | image | video | audio | document | sticker | location | contact | poll | reaction | edit | revoke | unsupported
 	text?: string; // text, caption, or the new text of an edit
 	quoted?: { id: string; sender?: string; text?: string };
+	forwarded?: 'yes' | 'many';
 	media?: { mimetype?: string; size?: number; file_name?: string; seconds?: number; voice?: boolean };
 	reaction?: { id: string; emoji: string }; // emoji '' = removed
 	target?: string; // edit, revoke: the id of the message changed
@@ -255,21 +256,28 @@ function describe(c: proto.IMessage): Body | undefined {
 	const type = getContentType(c);
 	if (!type || IGNORED.has(type)) return undefined;
 	const node = (c[type] ?? {}) as Node;
+	const body = contentOf(c, type, node);
 	const ctx = node.contextInfo;
-	const quoted = ctx?.stanzaId
-		? {
-				id: ctx.stanzaId,
-				sender: ctx.participant ? jidNormalizedUser(ctx.participant) : undefined,
-				text: excerpt(textOf(normalizeMessageContent(ctx.quotedMessage))),
-			}
-		: undefined;
+	if (ctx?.stanzaId) {
+		body.quoted = {
+			id: ctx.stanzaId,
+			sender: ctx.participant ? jidNormalizedUser(ctx.participant) : undefined,
+			text: excerpt(textOf(normalizeMessageContent(ctx.quotedMessage))),
+		};
+	}
+	// WhatsApp never says who wrote a forwarded message, only that it was forwarded (and "many times"
+	// from the fifth hop on).
+	if (ctx?.isForwarded) body.forwarded = (ctx.forwardingScore ?? 0) >= 5 ? 'many' : 'yes';
+	return body;
+}
+
+function contentOf(c: proto.IMessage, type: string, node: Node): Body {
 	if (type === 'conversation') return { kind: 'text', text: c.conversation ?? '' };
-	if (type === 'extendedTextMessage') return { kind: 'text', text: c.extendedTextMessage?.text ?? '', quoted };
+	if (type === 'extendedTextMessage') return { kind: 'text', text: c.extendedTextMessage?.text ?? '' };
 	if (MEDIA[type]) {
 		return {
 			kind: MEDIA[type],
 			text: node.caption ?? undefined,
-			quoted,
 			media: {
 				mimetype: node.mimetype ?? undefined,
 				size: node.fileLength ? toNumber(node.fileLength) : undefined,
@@ -282,13 +290,13 @@ function describe(c: proto.IMessage): Body | undefined {
 	const loc = c.locationMessage ?? c.liveLocationMessage;
 	if (loc) {
 		const place = [c.locationMessage?.name, c.locationMessage?.address].filter(Boolean).join(', ');
-		return { kind: 'location', text: `${loc.degreesLatitude},${loc.degreesLongitude}${place ? ` (${place})` : ''}`, quoted };
+		return { kind: 'location', text: `${loc.degreesLatitude},${loc.degreesLongitude}${place ? ` (${place})` : ''}` };
 	}
-	if (c.contactMessage) return { kind: 'contact', text: c.contactMessage.vcard ?? c.contactMessage.displayName ?? '', quoted };
+	if (c.contactMessage) return { kind: 'contact', text: c.contactMessage.vcard ?? c.contactMessage.displayName ?? '' };
 	const poll = c.pollCreationMessage ?? c.pollCreationMessageV2 ?? c.pollCreationMessageV3;
 	if (poll) {
 		const options = (poll.options ?? []).map((o) => `- ${o.optionName}`).join('\n');
-		return { kind: 'poll', text: `${poll.name ?? ''}\n${options}`, quoted };
+		return { kind: 'poll', text: `${poll.name ?? ''}\n${options}` };
 	}
 	return { kind: 'unsupported', text: type };
 }
