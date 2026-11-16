@@ -7,9 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/daffirds/bailey-cc-bridge/internal/app"
 	"github.com/daffirds/bailey-cc-bridge/internal/config"
@@ -21,7 +23,7 @@ import (
 )
 
 type Bridge struct {
-	cfg     *config.Config
+	cfgPath string
 	wa      *whatsapp.Client
 	me      *whatsapp.Me
 	host    *tools.Host
@@ -31,6 +33,7 @@ type Bridge struct {
 	engines map[string]engine.Engine
 
 	mu       sync.Mutex
+	cfg      *config.Config      // replaced when config.yaml changes
 	sessions map[string]*session // by chat JID
 	notes    *ring[note]         // recent messages by id, for quotes and reactions
 	last     map[string]string   // chat JID → id of the latest message received there
@@ -44,9 +47,10 @@ type note struct {
 	own  bool // sent by an agent
 }
 
-func New(cfg *config.Config, wa *whatsapp.Client, me *whatsapp.Me, host *tools.Host, baseURL string, log *slog.Logger) *Bridge {
+// New makes a bridge for cfg, which was loaded from cfgPath; Run reloads it when the file changes.
+func New(cfg *config.Config, cfgPath string, wa *whatsapp.Client, me *whatsapp.Me, host *tools.Host, baseURL string, log *slog.Logger) *Bridge {
 	return &Bridge{
-		cfg: cfg, wa: wa, me: me, host: host, baseURL: baseURL, log: log,
+		cfg: cfg, cfgPath: cfgPath, wa: wa, me: me, host: host, baseURL: baseURL, log: log,
 		state:    loadState(filepath.Join(app.Home(), "state.json")),
 		engines:  map[string]engine.Engine{config.EngineClaude: claude.Engine{}, config.EngineCodex: codex.Engine{}},
 		sessions: map[string]*session{},
@@ -60,10 +64,18 @@ func New(cfg *config.Config, wa *whatsapp.Client, me *whatsapp.Me, host *tools.H
 // processes before returning; their conversations resume with the next message after a restart.
 func (b *Bridge) Run(ctx context.Context) error {
 	defer b.stop()
+	poll := time.NewTicker(3 * time.Second)
+	defer poll.Stop()
+	modified := modTime(b.cfgPath)
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
+		case <-poll.C:
+			if t := modTime(b.cfgPath); !t.Equal(modified) {
+				modified = t
+				b.reload()
+			}
 		case <-b.wa.Done():
 			return fmt.Errorf("whatsapp sidecar exited: %v", b.wa.Err())
 		case ev := <-b.wa.Events():
@@ -83,11 +95,45 @@ func (b *Bridge) Run(ctx context.Context) error {
 	}
 }
 
+// reload applies an edited config.yaml. Sessions of removed chats, and of chats whose settings
+// changed, stop; a changed chat's next message starts its agent again with the new settings,
+// resuming the same conversation.
+func (b *Bridge) reload() {
+	cfg, err := config.Load(b.cfgPath)
+	if err != nil {
+		b.log.Warn("config.yaml changed but is invalid; keeping the previous config", "err", err)
+		return
+	}
+	b.mu.Lock()
+	var stale []*session
+	for jid, s := range b.sessions {
+		if c := cfg.Chat(jid); c == nil || *c != *s.chat {
+			stale = append(stale, s)
+			delete(b.sessions, jid)
+		}
+	}
+	b.cfg = cfg
+	b.ignored = map[string]bool{}
+	b.mu.Unlock()
+	for _, s := range stale {
+		go s.stop()
+	}
+	b.log.Info("config reloaded", "chats", len(cfg.Chats), "sessions_restarted", len(stale))
+}
+
+func modTime(path string) time.Time {
+	st, err := os.Stat(path)
+	if err != nil {
+		return time.Time{}
+	}
+	return st.ModTime()
+}
+
 func (b *Bridge) route(m *whatsapp.Message) {
 	b.log.Debug("message", "chat", m.Chat, "id", m.ID, "kind", m.Kind, "from_me", m.FromMe)
-	chat := b.cfg.Chat(m.Chat, m.ChatAlt)
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	chat := b.cfg.Chat(m.Chat, m.ChatAlt)
 	if chat == nil {
 		if !b.ignored[m.Chat] {
 			b.ignored[m.Chat] = true
@@ -156,6 +202,8 @@ func (b *Bridge) ownerName() string {
 
 // resolve maps a chat name, JID or phone number to a whitelisted chat's JID.
 func (b *Bridge) resolve(name string) (string, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	if jid, err := config.NormalizeJID(name); err == nil {
 		if c := b.cfg.Chat(jid); c != nil {
 			return c.JID, nil

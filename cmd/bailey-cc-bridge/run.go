@@ -55,5 +55,5 @@ func runRun(ctx context.Context, args []string) error {
 	for _, c := range cfg.Chats {
 		log.Info("bridging", "chat", c.Name, "jid", c.JID, "engine", c.Engine, "autonomy", c.Autonomy)
 	}
-	return bridge.New(cfg, wa, me, host, "http://"+ln.Addr().String(), log).Run(ctx)
+	return bridge.New(cfg, *path, wa, me, host, "http://"+ln.Addr().String(), log).Run(ctx)
 }
