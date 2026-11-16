@@ -21,6 +21,7 @@ type command struct {
 
 var commands = []command{
 	{"run", "Bridge the chats in config.yaml to their agents (foreground; Ctrl-C stops)", runRun},
+	{"ui", "Edit config.yaml in the browser: chats, engines, working directories", runUI},
 	{"login", "Link this Mac to your WhatsApp account (QR code, or -phone for a pairing code)", runLogin},
 	{"logout", "Unlink this Mac and delete its WhatsApp credentials", runLogout},
 	{"chats", "List your groups and your own JID, for the whitelist in config.yaml", runChats},
