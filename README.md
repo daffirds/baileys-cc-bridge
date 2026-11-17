@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <b>Give an AI agent a WhatsApp number and a computer. People message it like anyone else; Claude Code or Codex does the work on your Mac.</b>
+  <b>Put Claude Code or Codex in your WhatsApp group. It does the work on your Mac and answers in the chat.</b>
 </p>
 
 <p align="center">
