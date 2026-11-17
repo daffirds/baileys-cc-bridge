@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as KeyEvent, type ReactNode, type Ref, type SyntheticEvent } from 'react';
-import { api, type Agent, type Chat, type Group, type Model, type Person, type Placeholder, type State, type Status } from './api';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { api, type Agent, type Chat, type Group, type Model, type Person, type State, type Status } from './api';
 import { Icon, type IconName } from './icons';
 
 const ENGINES: Record<string, string> = { claude: 'Claude', codex: 'Codex' };
@@ -41,27 +41,6 @@ function useModels(engine: string): { models: Model[] | null; error: string } {
   }, [engine]);
   return got.engine === engine ? got : { models: null, error: '' };
 }
-
-// Who the prompt speaks of, to fill in its placeholders the way the bridge does.
-type Account = { me: string; owner: string; number: string };
-
-// A variable a system prompt may use, with what it becomes in this chat.
-type Variable = Placeholder & { value: string };
-
-function variables(state: State, chat: Chat, a: Account): Variable[] {
-  const kind = isGroup(chat.jid) ? 'group' : chat.jid === a.me ? `${a.owner}'s own "Message yourself" chat` : 'direct chat';
-  const values: Record<string, string> = {
-    '{owner}': a.owner,
-    '{number}': a.number,
-    '{chat}': chat.name || chat.jid.split('@')[0],
-    '{chat_kind}': kind,
-    '{chat_jid}': chat.jid,
-  };
-  return (state.placeholders ?? []).map((p) => ({ ...p, value: values[p.key] ?? '' }));
-}
-
-// The words a variable's chip shows: {chat_kind} reads "chat kind".
-const chipName = (key: string) => key.slice(1, -1).replace(/_/g, ' ');
 
 const isGroup = (jid: string) => jid.endsWith('@g.us');
 
@@ -247,7 +226,6 @@ function Panel({ status }: { status: Status }) {
 
   const me = status.me?.id ?? '';
   const who = status.me?.name ? `${status.me.name} · +${status.number}` : `+${status.number}`;
-  const account = { me, owner: status.me?.name || 'the owner', number: status.number ?? '' };
 
   return (
     <main className="page">
@@ -286,7 +264,7 @@ function Panel({ status }: { status: Status }) {
       )}
       {adding && state && chats && (
         <AddChatModal
-          account={account}
+          me={me}
           state={state}
           existing={chats}
           onAdd={(c) => save((cs) => [...cs, c], 'Added')}
@@ -313,7 +291,7 @@ function Panel({ status }: { status: Status }) {
               key={c.jid}
               index={i}
               chat={c}
-              account={account}
+              me={me}
               state={state}
               defaultDir={`${state.chats_dir}/${dirName(c.jid)}`}
               onSave={(next) => save((cs) => cs.map((x) => (x.jid === c.jid ? next : x)), 'Saved')}
@@ -553,163 +531,23 @@ function ModelFields({ engine, model, effort, onChange }: {
 }
 
 // PromptField shows the whole system prompt the chat's agent gets: the built-in one until it is
-// edited. Nothing else is added to it. Its variables can be dragged in from a list beside it, which
-// shows each one's value in this chat as a chip with its name under it.
-function PromptField({ chat, account, state, onChange }: { chat: Chat; account: Account; state: State; onChange: (c: Chat) => void }) {
-  const [listing, setListing] = useState(false);
-  const editor = useRef<HTMLTextAreaElement>(null);
+// edited. Nothing else is added to it.
+function PromptField({ chat, state, onChange }: { chat: Chat; state: State; onChange: (c: Chat) => void }) {
   const custom = !!chat.system_prompt?.trim();
   const text = custom ? chat.system_prompt! : state.default_prompt;
   // Back to the exact built-in text means following the built-in one again.
   const set = (t: string) => onChange(clean({ ...chat, system_prompt: t.trim() === state.default_prompt.trim() ? '' : t }));
-  const vars = variables(state, chat, account);
-  // A click on a variable puts it at the cursor, as typing would, so undo takes it back out.
-  const insert = (key: string) => {
-    const t = editor.current;
-    if (!t) return;
-    t.focus();
-    if (!document.execCommand('insertText', false, key)) {
-      set(t.value.slice(0, t.selectionStart) + key + t.value.slice(t.selectionEnd));
-    }
-  };
   return (
     <div className="prompt">
       <div className="row between-tight">
         <span className="label">System prompt</span>
-        <span className="row">
-          {custom && (
-            <button type="button" className="link" onClick={() => set(state.default_prompt)}>
-              Reset to default
-            </button>
-          )}
-          <button type="button" className={listing ? 'toggle-chip on' : 'toggle-chip'} aria-pressed={listing} onClick={() => setListing(!listing)}>
-            <Icon name="braces" size={15} />
-            Variables
+        {custom && (
+          <button type="button" className="link" onClick={() => set(state.default_prompt)}>
+            Reset to default
           </button>
-        </span>
-      </div>
-      <div className={listing ? 'prompt-body listing' : 'prompt-body'}>
-        <PromptEditor ref={editor} value={text} keys={vars.map((v) => v.key)} onChange={set} />
-        {listing && (
-          <aside className="vars">
-            {vars.map((v) => (
-              <div
-                key={v.key}
-                className="var"
-                role="button"
-                tabIndex={0}
-                draggable
-                title={`${v.value}\n${v.about}`}
-                onDragStart={(e) => {
-                  e.dataTransfer.setData('text/plain', v.key);
-                  e.dataTransfer.effectAllowed = 'copy';
-                }}
-                onClick={() => insert(v.key)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    insert(v.key);
-                  }
-                }}
-              >
-                <span className="chip">{v.value || chipName(v.key)}</span>
-                <span className="var-name">{chipName(v.key)}</span>
-              </div>
-            ))}
-          </aside>
         )}
       </div>
-    </div>
-  );
-}
-
-// PromptEditor edits a prompt with its variables drawn as chips. It is a plain textarea over a
-// copy of its text that draws the chips; the textarea's own text is transparent, so typing, undo,
-// selection and drops stay the browser's. A chip goes as one: the caret hops over it, a selection
-// takes it whole, and Backspace or Delete beside it removes it.
-function PromptEditor({ ref, value, keys, onChange }: {
-  ref: Ref<HTMLTextAreaElement>;
-  value: string;
-  keys: string[];
-  onChange: (v: string) => void;
-}) {
-  const [dropping, setDropping] = useState(false);
-  const caret = useRef(0); // where the caret last was, to tell which way it moves
-  const mouse = useRef(false); // the selection is the mouse's
-  const pattern = useMemo(
-    () => (keys.length ? new RegExp(keys.map((k) => k.replace(/[{}]/g, '\\$&')).join('|'), 'g') : null),
-    [keys.join(' ')],
-  );
-  const chips = useMemo(() => (pattern ? [...value.matchAll(pattern)].map((m) => [m.index, m.index + m[0].length]) : []), [value, pattern]);
-  const inside = (p: number) => chips.find(([a, b]) => a < p && p < b);
-
-  const select = (e: SyntheticEvent<HTMLTextAreaElement>) => {
-    const t = e.currentTarget;
-    const { selectionStart: s, selectionEnd: end } = t;
-    const backward = t.selectionDirection === 'backward';
-    const focus = backward ? s : end;
-    let f = focus;
-    const fc = inside(focus);
-    if (fc) {
-      // A click lands on the nearer side; arrows carry on the way they were going.
-      if (mouse.current) f = focus - fc[0] < fc[1] - focus ? fc[0] : fc[1];
-      else f = focus < caret.current ? fc[0] : fc[1];
-    }
-    let a = backward ? end : s;
-    const ac = s === end ? undefined : inside(a);
-    if (ac) a = backward ? ac[1] : ac[0];
-    if (s === end) a = f;
-    caret.current = f;
-    if (f !== focus || a !== (backward ? end : s)) t.setSelectionRange(Math.min(a, f), Math.max(a, f), f < a ? 'backward' : 'forward');
-  };
-
-  const keyDown = (e: KeyEvent<HTMLTextAreaElement>) => {
-    mouse.current = false;
-    const t = e.currentTarget;
-    if (e.metaKey || t.selectionStart !== t.selectionEnd) return;
-    const p = t.selectionStart;
-    const chip = e.key === 'Backspace' ? chips.find(([, b]) => b === p) : e.key === 'Delete' ? chips.find(([a]) => a === p) : undefined;
-    if (chip) t.setSelectionRange(chip[0], chip[1]); // the key's own deletion then takes the chip whole
-  };
-
-  const drawn: ReactNode[] = [];
-  let at = 0;
-  for (const [a, b] of chips) {
-    drawn.push(value.slice(at, a));
-    // The braces and underscores stay in, hidden, so the copy wraps exactly like the textarea.
-    drawn.push(
-      <span key={a} className="chip">
-        <span className="hide">{'{'}</span>
-        {value
-          .slice(a + 1, b - 1)
-          .split('_')
-          .map((w, i) => (i ? [<span key={i} className="hide">_</span>, w] : w))}
-        <span className="hide">{'}'}</span>
-      </span>,
-    );
-    at = b;
-  }
-  drawn.push(value.slice(at) + '\u200b'); // keeps a last empty line as tall as the textarea's
-
-  return (
-    <div className={dropping ? 'editor dropping' : 'editor'}>
-      <div className="mirror" aria-hidden="true">
-        {drawn}
-      </div>
-      <textarea
-        ref={ref}
-        rows={1}
-        spellCheck={false}
-        aria-label="System prompt"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onSelect={select}
-        onKeyDown={keyDown}
-        onPointerDown={() => (mouse.current = true)}
-        onDragEnter={() => setDropping(true)}
-        onDragLeave={() => setDropping(false)}
-        onDrop={() => setDropping(false)}
-      />
+      <textarea rows={10} spellCheck={false} aria-label="System prompt" value={text} onChange={(e) => set(e.target.value)} />
     </div>
   );
 }
@@ -757,10 +595,10 @@ function DirInput({ value, placeholder, onChange }: { value: string; placeholder
 
 // ChatCard shows a conversation folded to its name and main settings. The pencil opens it for
 // editing; the check saves the changes and folds it again, the cross drops them.
-function ChatCard({ index, chat, account, state, defaultDir, onSave, onRemove, onUnsaved }: {
+function ChatCard({ index, chat, me, state, defaultDir, onSave, onRemove, onUnsaved }: {
   index: number;
   chat: Chat;
-  account: Account;
+  me: string;
   state: State;
   defaultDir: string;
   onSave: (c: Chat) => Promise<void>;
@@ -800,7 +638,7 @@ function ChatCard({ index, chat, account, state, defaultDir, onSave, onRemove, o
   return (
     <section className={open ? 'card chat open' : 'card chat'} style={{ '--i': index } as CSSProperties}>
       <div className="head">
-        <Who chat={open ? draft : chat} me={account.me} />
+        <Who chat={open ? draft : chat} me={me} />
         {!open && <Summary chat={chat} />}
         <div className="actions">
           <IconButton icon="trash" label="Remove" tone="danger" onClick={onRemove} />
@@ -817,7 +655,7 @@ function ChatCard({ index, chat, account, state, defaultDir, onSave, onRemove, o
       <div className="fold" inert={!open}>
         <div>
           <AgentFields value={draft} defaultDir={defaultDir} onChange={setDraft} />
-          <PromptField chat={draft} account={account} state={state} onChange={setDraft} />
+          <PromptField chat={draft} state={state} onChange={setDraft} />
           {error && <p className="error small">Couldn’t save: {error}</p>}
         </div>
       </div>
@@ -860,14 +698,13 @@ function IconButton({ icon, label, tone, onClick, disabled }: {
 
 // AddChatModal adds a chat in three steps: group or direct message, which one, then its agent and
 // system prompt.
-function AddChatModal({ account, state, existing, onAdd, onClose }: {
-  account: Account;
+function AddChatModal({ me, state, existing, onAdd, onClose }: {
+  me: string;
   state: State;
   existing: Chat[];
   onAdd: (c: Chat) => Promise<void>;
   onClose: () => void;
 }) {
-  const me = account.me;
   const [step, setStep] = useState<'kind' | 'group' | 'person' | 'agent'>('kind');
   const [from, setFrom] = useState<'group' | 'person'>('group');
   const [chat, setChat] = useState<Chat | null>(null);
@@ -928,7 +765,7 @@ function AddChatModal({ account, state, existing, onAdd, onClose }: {
               <Who chat={chat} me={me} />
             </div>
             <AgentFields value={chat} defaultDir={`${state.chats_dir}/${dirName(chat.jid)}`} onChange={setChat} />
-            <PromptField chat={chat} account={account} state={state} onChange={setChat} />
+            <PromptField chat={chat} state={state} onChange={setChat} />
             {error && <p className="error small">{error}</p>}
             <div className="row end">
               <button type="button" onClick={() => setStep(from)} disabled={busy}>
