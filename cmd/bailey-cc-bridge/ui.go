@@ -15,7 +15,7 @@ import (
 func runUI(context.Context, []string) error {
 	b, err := os.ReadFile(webui.LinkFile())
 	if err != nil {
-		return errors.New("the bridge is not running: `bailey-cc-bridge run` serves the panel")
+		return errors.New("the bridge is not running: `bailey-cc-bridge install` keeps it running in the background (or `run` in a terminal)")
 	}
 	link := strings.TrimSpace(string(b))
 	fmt.Println(link)

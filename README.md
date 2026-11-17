@@ -23,14 +23,16 @@ Needs macOS, Go 1.26+, Node 22.18+, and `claude` and/or `codex` installed and lo
 
 ```sh
 go build -o ~/.local/bin/bailey-cc-bridge ./cmd/bailey-cc-bridge
-bailey-cc-bridge run     # foreground; Ctrl-C stops. Opens the panel while no number is linked
-bailey-cc-bridge ui      # opens the running bridge's panel
+bailey-cc-bridge install   # from now on it runs in the background, and opens its panel
 ```
 
-`run` serves the panel on 127.0.0.1:9999: scan its QR code (WhatsApp → Settings → Linked devices),
-then pick chats, engines and folders. Logging out there unlinks the number and shows a new QR code,
-so another number can take over. The first connection installs the sidecar's npm packages under
-`~/.bailey-cc-bridge/sidecar`.
+The bridge then runs in the background with no terminal: it starts when you log in and restarts if it
+crashes. Its panel is on 127.0.0.1:9999 (bookmark the link, or open it with `bailey-cc-bridge ui`):
+scan its QR code (WhatsApp → Settings → Linked devices), then pick chats, engines and folders.
+Logging out there unlinks the number and shows a new QR code, so another number can take over.
+
+`uninstall` stops it; `run` runs it in a terminal instead (Ctrl-C stops). The first connection
+installs the sidecar's npm packages under `~/.bailey-cc-bridge/sidecar`.
 
 ## Config
 
@@ -70,6 +72,7 @@ the agent.
 |---|---|
 | `run [-debug] [-addr] [-open]` | bridge the configured chats and serve the panel |
 | `ui` | open the running bridge's panel |
+| `install` · `uninstall` | run in the background (a launchd agent: starts at login, restarts after a crash), or stop |
 | `login [-phone N]` · `logout` | link or unlink this Mac from the terminal |
 | `chats [filter]` | your JID and your groups' JIDs |
 
@@ -79,6 +82,7 @@ connection would make WhatsApp drop the first.
 ## Files
 
 `~/.bailey-cc-bridge/` holds `auth/` (the linked device's WhatsApp credentials), `sidecar/`,
+`bridge.log` (the background bridge's log),
 `panel.token` (the panel link's token, kept so a bookmark keeps working) and one folder per number that has been linked, so another number never shares a chat's conversation:
 
 ```
