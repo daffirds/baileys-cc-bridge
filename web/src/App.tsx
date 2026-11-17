@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { api, type Agent, type Chat, type Group, type Model, type Person, type State, type Status } from './api';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as KeyEvent, type ReactNode, type Ref, type SyntheticEvent } from 'react';
+import { api, type Agent, type Chat, type Group, type Model, type Person, type Placeholder, type State, type Status } from './api';
 import { Icon, type IconName } from './icons';
 
 const ENGINES: Record<string, string> = { claude: 'Claude', codex: 'Codex' };
@@ -45,8 +45,11 @@ function useModels(engine: string): { models: Model[] | null; error: string } {
 // Who the prompt speaks of, to fill in its placeholders the way the bridge does.
 type Account = { me: string; owner: string; number: string };
 
-function fillPrompt(prompt: string, chat: Chat, a: Account) {
-  const kind = chat.jid.endsWith('@g.us') ? 'group' : chat.jid === a.me ? `${a.owner}'s own "Message yourself" chat` : 'direct chat';
+// A variable a system prompt may use, with what it becomes in this chat.
+type Variable = Placeholder & { value: string };
+
+function variables(state: State, chat: Chat, a: Account): Variable[] {
+  const kind = isGroup(chat.jid) ? 'group' : chat.jid === a.me ? `${a.owner}'s own "Message yourself" chat` : 'direct chat';
   const values: Record<string, string> = {
     '{owner}': a.owner,
     '{number}': a.number,
@@ -54,8 +57,11 @@ function fillPrompt(prompt: string, chat: Chat, a: Account) {
     '{chat_kind}': kind,
     '{chat_jid}': chat.jid,
   };
-  return prompt.replace(/\{(owner|number|chat_kind|chat_jid|chat)\}/g, (m) => values[m] ?? m);
+  return (state.placeholders ?? []).map((p) => ({ ...p, value: values[p.key] ?? '' }));
 }
+
+// The words a variable's chip shows: {chat_kind} reads "chat kind".
+const chipName = (key: string) => key.slice(1, -1).replace(/_/g, ' ');
 
 const isGroup = (jid: string) => jid.endsWith('@g.us');
 
@@ -520,13 +526,24 @@ function ModelFields({ engine, model, effort, onChange }: {
 }
 
 // PromptField shows the whole system prompt the chat's agent gets: the built-in one until it is
-// edited. Nothing else is added to it.
+// edited. Nothing else is added to it. Its variables can be dragged in from a list beside it.
 function PromptField({ chat, account, state, onChange }: { chat: Chat; account: Account; state: State; onChange: (c: Chat) => void }) {
-  const [preview, setPreview] = useState(false);
+  const [listing, setListing] = useState(false);
+  const editor = useRef<HTMLTextAreaElement>(null);
   const custom = !!chat.system_prompt?.trim();
   const text = custom ? chat.system_prompt! : state.default_prompt;
   // Back to the exact built-in text means following the built-in one again.
   const set = (t: string) => onChange(clean({ ...chat, system_prompt: t.trim() === state.default_prompt.trim() ? '' : t }));
+  const vars = variables(state, chat, account);
+  // A click on a variable puts it at the cursor, as typing would, so undo takes it back out.
+  const insert = (key: string) => {
+    const t = editor.current;
+    if (!t) return;
+    t.focus();
+    if (!document.execCommand('insertText', false, key)) {
+      set(t.value.slice(0, t.selectionStart) + key + t.value.slice(t.selectionEnd));
+    }
+  };
   return (
     <div className="prompt">
       <div className="row between-tight">
@@ -534,29 +551,138 @@ function PromptField({ chat, account, state, onChange }: { chat: Chat; account: 
         <span className="row">
           {custom && (
             <button type="button" className="link" onClick={() => set(state.default_prompt)}>
-              Reset to built-in
+              Reset to default
             </button>
           )}
-          <button type="button" className="link" onClick={() => setPreview(!preview)}>
-            {preview ? 'Edit' : 'Preview'}
+          <button type="button" className={listing ? 'toggle-chip on' : 'toggle-chip'} aria-pressed={listing} onClick={() => setListing(!listing)}>
+            <Icon name="braces" size={15} />
+            Variables
           </button>
         </span>
       </div>
-      {preview ? (
-        <pre className="preview">{fillPrompt(text, chat, account)}</pre>
-      ) : (
-        <textarea rows={12} spellCheck={false} value={text} onChange={(e) => set(e.target.value)} />
-      )}
-      <p className="muted small">
-        Filled in for this conversation:{' '}
-        {(state.placeholders ?? []).map((p, i) => (
-          <span key={p.key} title={p.about}>
-            {i > 0 && ' '}
-            <code>{p.key}</code>
-          </span>
-        ))}
-        . Clearing it all goes back to the built-in one.
-      </p>
+      <div className={listing ? 'prompt-body listing' : 'prompt-body'}>
+        <PromptEditor ref={editor} value={text} keys={vars.map((v) => v.key)} onChange={set} />
+        {listing && (
+          <aside className="vars">
+            <p>Drag one into the prompt, or click to add it at the cursor.</p>
+            {vars.map((v) => (
+              <div
+                key={v.key}
+                className="var"
+                role="button"
+                tabIndex={0}
+                draggable
+                title={v.about}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/plain', v.key);
+                  e.dataTransfer.effectAllowed = 'copy';
+                }}
+                onClick={() => insert(v.key)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    insert(v.key);
+                  }
+                }}
+              >
+                <span className="chip">{chipName(v.key)}</span>
+                <span className="var-value">{v.value}</span>
+              </div>
+            ))}
+          </aside>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// PromptEditor edits a prompt with its variables drawn as chips. It is a plain textarea over a
+// copy of its text that draws the chips; the textarea's own text is transparent, so typing, undo,
+// selection and drops stay the browser's. A chip goes as one: the caret hops over it, a selection
+// takes it whole, and Backspace or Delete beside it removes it.
+function PromptEditor({ ref, value, keys, onChange }: {
+  ref: Ref<HTMLTextAreaElement>;
+  value: string;
+  keys: string[];
+  onChange: (v: string) => void;
+}) {
+  const [dropping, setDropping] = useState(false);
+  const caret = useRef(0); // where the caret last was, to tell which way it moves
+  const mouse = useRef(false); // the selection is the mouse's
+  const pattern = useMemo(
+    () => (keys.length ? new RegExp(keys.map((k) => k.replace(/[{}]/g, '\\$&')).join('|'), 'g') : null),
+    [keys.join(' ')],
+  );
+  const chips = useMemo(() => (pattern ? [...value.matchAll(pattern)].map((m) => [m.index, m.index + m[0].length]) : []), [value, pattern]);
+  const inside = (p: number) => chips.find(([a, b]) => a < p && p < b);
+
+  const select = (e: SyntheticEvent<HTMLTextAreaElement>) => {
+    const t = e.currentTarget;
+    const { selectionStart: s, selectionEnd: end } = t;
+    const backward = t.selectionDirection === 'backward';
+    const focus = backward ? s : end;
+    let f = focus;
+    const fc = inside(focus);
+    if (fc) {
+      // A click lands on the nearer side; arrows carry on the way they were going.
+      if (mouse.current) f = focus - fc[0] < fc[1] - focus ? fc[0] : fc[1];
+      else f = focus < caret.current ? fc[0] : fc[1];
+    }
+    let a = backward ? end : s;
+    const ac = s === end ? undefined : inside(a);
+    if (ac) a = backward ? ac[1] : ac[0];
+    if (s === end) a = f;
+    caret.current = f;
+    if (f !== focus || a !== (backward ? end : s)) t.setSelectionRange(Math.min(a, f), Math.max(a, f), f < a ? 'backward' : 'forward');
+  };
+
+  const keyDown = (e: KeyEvent<HTMLTextAreaElement>) => {
+    mouse.current = false;
+    const t = e.currentTarget;
+    if (e.metaKey || t.selectionStart !== t.selectionEnd) return;
+    const p = t.selectionStart;
+    const chip = e.key === 'Backspace' ? chips.find(([, b]) => b === p) : e.key === 'Delete' ? chips.find(([a]) => a === p) : undefined;
+    if (chip) t.setSelectionRange(chip[0], chip[1]); // the key's own deletion then takes the chip whole
+  };
+
+  const drawn: ReactNode[] = [];
+  let at = 0;
+  for (const [a, b] of chips) {
+    drawn.push(value.slice(at, a));
+    // The braces and underscores stay in, hidden, so the copy wraps exactly like the textarea.
+    drawn.push(
+      <span key={a} className="chip">
+        <span className="hide">{'{'}</span>
+        {value
+          .slice(a + 1, b - 1)
+          .split('_')
+          .map((w, i) => (i ? [<span key={i} className="hide">_</span>, w] : w))}
+        <span className="hide">{'}'}</span>
+      </span>,
+    );
+    at = b;
+  }
+  drawn.push(value.slice(at) + '\u200b'); // keeps a last empty line as tall as the textarea's
+
+  return (
+    <div className={dropping ? 'editor dropping' : 'editor'}>
+      <div className="mirror" aria-hidden="true">
+        {drawn}
+      </div>
+      <textarea
+        ref={ref}
+        rows={1}
+        spellCheck={false}
+        aria-label="System prompt"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onSelect={select}
+        onKeyDown={keyDown}
+        onPointerDown={() => (mouse.current = true)}
+        onDragEnter={() => setDropping(true)}
+        onDragLeave={() => setDropping(false)}
+        onDrop={() => setDropping(false)}
+      />
     </div>
   );
 }

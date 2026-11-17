@@ -774,22 +774,190 @@ button.choice span {
   justify-content: space-between;
 }
 
-.prompt textarea {
-  line-height: 1.6;
+button.toggle-chip {
+  gap: 5px;
+  padding: 4px 11px 4px 9px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
-.preview {
-  margin: 0;
-  padding: 10px 12px;
-  max-height: 340px;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font: inherit;
-  line-height: 1.6;
-  background: var(--field);
+button.toggle-chip.on {
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+}
+
+.prompt-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.prompt-body.listing {
+  grid-template-columns: minmax(0, 1fr) 220px;
+}
+
+@media (max-width: 640px) {
+  .prompt-body.listing {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The editor stacks the textarea on a copy of its text in one grid cell: the copy draws the
+   text with its chips and sets the height, the textarea on top takes the typing. Both must lay
+   the text out identically. */
+.editor {
+  display: grid;
+  min-height: 180px;
   border: 1px solid var(--line-strong);
-  border-radius: 12px;
+  border-radius: 14px;
+  background: var(--field);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s,
+    background 0.15s;
+}
+
+.editor:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+.editor.dropping {
+  border-color: var(--accent);
+  border-style: dashed;
+  background: color-mix(in srgb, var(--accent) 6%, var(--field));
+}
+
+.editor > .mirror,
+.editor > textarea,
+.editor > textarea:focus {
+  grid-area: 1 / 1;
+  margin: 0;
+  padding: 14px 16px;
+  border: 0;
+  font: inherit;
+  font-size: 14.5px;
+  line-height: 1.75;
+  letter-spacing: normal;
+  word-spacing: normal;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: normal;
+  tab-size: 4;
+}
+
+.editor > .mirror {
+  min-width: 0;
+  color: var(--text);
+  pointer-events: none;
+}
+
+.editor > textarea,
+.editor > textarea:focus {
+  min-width: 0;
+  min-height: 0;
+  resize: none;
+  overflow: hidden;
+  color: transparent;
+  caret-color: var(--text);
+  background: transparent;
+  border-radius: inherit;
+  box-shadow: none;
+  outline: none;
+}
+
+.editor > textarea::selection {
+  color: transparent;
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* A chip only gets color: anything that changes widths would put it out of line with the
+   textarea's text. */
+.chip {
+  padding: 2px 0;
+  border-radius: 7px;
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+  font-weight: inherit;
+}
+
+.chip .hide {
+  color: transparent;
+}
+
+.vars {
+  position: sticky;
+  top: 84px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-self: start;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 4%, var(--card));
+  animation: slide-in 0.28s var(--ease);
+}
+
+.vars p {
+  margin: 0 4px 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.var {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: 10px;
+  cursor: grab;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+
+.var:hover {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+.var:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+}
+
+.var:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.var .chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.var-value {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
 }
 
 .toggle {
