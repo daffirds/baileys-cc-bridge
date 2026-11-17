@@ -14,5 +14,5 @@ chats:
     engine: codex
     footer: false                          # no "Assisted by Codex" under its messages (on by default)
     workdir: ~/Projects/Personal/scratch   # default: ~/.baileys-cc-bridge/<number>/chats/<chat>
-    # system_prompt replaces the built-in prompt entirely (start from the one the panel shows);
-    # {owner}, {number}, {chat}, {chat_kind} and {chat_jid} are filled in.
+    # system_prompt follows the bridge's own fixed instructions; groups and direct chats each have
+    # a default (the panel shows them).

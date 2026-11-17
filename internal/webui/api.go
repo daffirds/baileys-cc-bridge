@@ -67,10 +67,9 @@ func (s *server) state(w http.ResponseWriter, _ *http.Request) {
 		cfg.Chats = []config.Chat{}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"chats_dir":      filepath.Join(app.AccountDir(number), "chats"),
-		"config":         cfg,
-		"default_prompt": bridge.DefaultSystemPrompt,
-		"placeholders":   bridge.Placeholders,
+		"chats_dir":       filepath.Join(app.AccountDir(number), "chats"),
+		"config":          cfg,
+		"default_prompts": map[string]string{"group": bridge.DefaultGroupPrompt, "direct": bridge.DefaultDirectPrompt},
 	})
 }
 

@@ -530,19 +530,20 @@ function ModelFields({ engine, model, effort, onChange }: {
   );
 }
 
-// PromptField shows the whole system prompt the chat's agent gets: the built-in one until it is
-// edited. Nothing else is added to it.
+// PromptField edits the chat's system prompt, which the agent gets after the bridge's own fixed
+// instructions: the default for groups or direct chats until it is edited.
 function PromptField({ chat, state, onChange }: { chat: Chat; state: State; onChange: (c: Chat) => void }) {
+  const fallback = isGroup(chat.jid) ? state.default_prompts.group : state.default_prompts.direct;
   const custom = !!chat.system_prompt?.trim();
-  const text = custom ? chat.system_prompt! : state.default_prompt;
-  // Back to the exact built-in text means following the built-in one again.
-  const set = (t: string) => onChange(clean({ ...chat, system_prompt: t.trim() === state.default_prompt.trim() ? '' : t }));
+  const text = custom ? chat.system_prompt! : fallback;
+  // Back to the exact default text means following the default again.
+  const set = (t: string) => onChange(clean({ ...chat, system_prompt: t.trim() === fallback.trim() ? '' : t }));
   return (
     <div className="prompt">
       <div className="row between-tight">
         <span className="label">System prompt</span>
         {custom && (
-          <button type="button" className="link" onClick={() => set(state.default_prompt)}>
+          <button type="button" className="link" onClick={() => set(fallback)}>
             Reset to default
           </button>
         )}

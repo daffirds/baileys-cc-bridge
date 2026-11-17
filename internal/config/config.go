@@ -44,8 +44,8 @@ type Agent struct {
 	Autonomy string `yaml:"autonomy,omitempty" json:"autonomy,omitempty"` // auto (default) | full | readonly
 	// Workdir is where the agent runs. "" = the chat's own folder under ~/.baileys-cc-bridge/chats.
 	Workdir string `yaml:"workdir,omitempty" json:"workdir,omitempty"`
-	// SystemPrompt replaces the bridge's built-in system prompt for this chat; "" keeps the
-	// built-in one. {owner}, {number}, {chat}, {chat_kind} and {chat_jid} are filled in.
+	// SystemPrompt is what the chat's agent is told after the bridge's own fixed instructions; ""
+	// uses the default for groups or direct chats.
 	SystemPrompt string `yaml:"system_prompt,omitempty" json:"system_prompt,omitempty"`
 	// Footer puts "Assisted by Claude" (or Codex) under what the agent sends. On unless false.
 	Footer *bool `yaml:"footer,omitempty" json:"footer,omitempty"`

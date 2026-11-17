@@ -30,13 +30,10 @@ export type Status = {
   qr?: string; // the code to scan while linking, as an image
 };
 
-export type Placeholder = { key: string; about: string };
-
 export type State = {
   chats_dir: string; // each chat's default folder lives under here
   config: Config;
-  default_prompt: string; // the built-in system prompt, with {placeholders}
-  placeholders: Placeholder[]; // the variables a system prompt may use, in order
+  default_prompts: { group: string; direct: string }; // the system prompt a chat gets unless it sets its own
 };
 
 const token = new URLSearchParams(location.hash.slice(1)).get('t') ?? '';
