@@ -27,7 +27,7 @@ bailey-cc-bridge run     # foreground; Ctrl-C stops. Opens the panel while no nu
 bailey-cc-bridge ui      # opens the running bridge's panel
 ```
 
-`run` serves the panel on 127.0.0.1:7468: scan its QR code (WhatsApp → Settings → Linked devices),
+`run` serves the panel on 127.0.0.1:9999: scan its QR code (WhatsApp → Settings → Linked devices),
 then pick chats, engines and folders. Logging out there unlinks the number and shows a new QR code,
 so another number can take over. The first connection installs the sidecar's npm packages under
 `~/.bailey-cc-bridge/sidecar`.

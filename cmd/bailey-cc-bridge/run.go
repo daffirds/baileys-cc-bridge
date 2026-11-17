@@ -26,7 +26,7 @@ func runRun(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("run", flag.ContinueOnError)
 	debug := fs.Bool("debug", false, "verbose logs")
 	path := fs.String("config", "", "config file (default: the linked number's config.yaml)")
-	addr := fs.String("addr", "127.0.0.1:7468", "where the panel listens (loopback only)")
+	addr := fs.String("addr", "127.0.0.1:9999", "where the panel listens (loopback only)")
 	open := fs.Bool("open", false, "open the panel in the browser (it opens anyway while no number is linked)")
 	if err := fs.Parse(args); err != nil {
 		return err
