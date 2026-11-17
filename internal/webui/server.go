@@ -41,8 +41,8 @@ type Status struct {
 	State      string       `json:"state"` // starting | linking | connected | logging_out
 	QR         string       `json:"-"`     // the code to scan while linking
 	Me         *whatsapp.Me `json:"me,omitempty"`
-	ConfigPath string       `json:"config_path,omitempty"` // the linked number's config, while connected
-	Error      string       `json:"error,omitempty"`       // why the last connection failed
+	ConfigPath string       `json:"-"`               // the linked number's config, while connected
+	Error      string       `json:"error,omitempty"` // why the last connection failed
 }
 
 type Options struct {

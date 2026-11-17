@@ -26,7 +26,6 @@ export type Status = {
   state: 'starting' | 'linking' | 'connected' | 'logging_out';
   me?: { id: string; lid?: string; name?: string };
   number?: string; // the linked number, while connected
-  config_path?: string;
   error?: string; // why the last connection failed
   qr?: string; // the code to scan while linking, as an image
 };
@@ -34,7 +33,6 @@ export type Status = {
 export type Placeholder = { key: string; about: string };
 
 export type State = {
-  config_path: string;
   chats_dir: string; // each chat's default folder lives under here
   config: Config;
   default_prompt: string; // the built-in system prompt, with {placeholders}

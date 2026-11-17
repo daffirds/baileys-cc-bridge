@@ -211,12 +211,6 @@ function Panel({ status }: { status: Status }) {
           <h1>baileys-cc-bridge</h1>
           <p className="muted">
             WhatsApp <b>{who}</b>
-            {state && (
-              <>
-                {' '}
-                · <code>{state.config_path}</code>
-              </>
-            )}
           </p>
         </div>
         <div className="row">
@@ -310,10 +304,6 @@ function LogoutModal({ who, onClose }: { who: string; onClose: () => void }) {
     <Modal title="Log out of WhatsApp?" onClose={onClose}>
       <p>
         This unlinks the bridge from <b>{who}</b> and stops its agents.
-      </p>
-      <p className="muted">
-        Its chats and conversations stay saved and come back if you link this number again. Next you can scan a QR code to link
-        any number.
       </p>
       {error && <p className="error small">{error}</p>}
       <div className="row end">
@@ -465,9 +455,7 @@ function PromptField({ chat, account, state, onChange }: { chat: Chat; account: 
   return (
     <div className="prompt">
       <div className="row between-tight">
-        <span className="label">
-          System prompt <span className={custom ? 'badge custom' : 'badge'}>{custom ? 'custom' : 'built-in'}</span>
-        </span>
+        <span className="label">System prompt</span>
         <span className="row">
           {custom && (
             <button type="button" className="link" onClick={() => set(state.default_prompt)}>

@@ -408,10 +408,6 @@ button.choice:hover {
   border-radius: 6px;
 }
 
-.badge.custom {
-  background: color-mix(in srgb, var(--warn) 25%, transparent);
-}
-
 .save {
   margin-right: 4px;
   font-size: 12.5px;
