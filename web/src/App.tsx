@@ -591,7 +591,6 @@ function PromptField({ chat, account, state, onChange }: { chat: Chat; account: 
         <PromptEditor ref={editor} value={text} keys={vars.map((v) => v.key)} onChange={set} />
         {listing && (
           <aside className="vars">
-            <p>Drag one into the prompt, or click to add it at the cursor.</p>
             {vars.map((v) => (
               <div
                 key={v.key}

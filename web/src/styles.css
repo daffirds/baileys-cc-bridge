@@ -976,13 +976,6 @@ button.toggle-chip.on {
   animation: slide-in 0.28s var(--ease);
 }
 
-.vars p {
-  margin: 0 4px 6px;
-  color: var(--muted);
-  font-size: 12.5px;
-  line-height: 1.4;
-}
-
 .var {
   display: flex;
   flex-direction: column;
