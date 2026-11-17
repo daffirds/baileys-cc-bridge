@@ -31,12 +31,14 @@ export type Status = {
   qr?: string; // the code to scan while linking, as an image
 };
 
+export type Placeholder = { key: string; about: string };
+
 export type State = {
   config_path: string;
   chats_dir: string; // each chat's default folder lives under here
   config: Config;
   default_prompt: string; // the built-in system prompt, with {placeholders}
-  placeholders: Record<string, string>; // placeholder → what it becomes
+  placeholders: Placeholder[]; // the variables a system prompt may use, in order
 };
 
 const token = new URLSearchParams(location.hash.slice(1)).get('t') ?? '';

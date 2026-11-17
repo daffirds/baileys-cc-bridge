@@ -486,10 +486,10 @@ function PromptField({ chat, account, state, onChange }: { chat: Chat; account: 
       )}
       <p className="muted small">
         Filled in for this chat:{' '}
-        {Object.entries(state.placeholders ?? {}).map(([k, v], i) => (
-          <span key={k} title={v}>
+        {(state.placeholders ?? []).map((p, i) => (
+          <span key={p.key} title={p.about}>
             {i > 0 && ' '}
-            <code>{k}</code>
+            <code>{p.key}</code>
           </span>
         ))}
         . Clearing it all goes back to the built-in one.
