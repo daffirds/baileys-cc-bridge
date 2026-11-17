@@ -18,8 +18,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/app"
-	"github.com/daffirds/bailey-cc-bridge/internal/proc"
+	"github.com/daffirds/baileys-cc-bridge/internal/app"
+	"github.com/daffirds/baileys-cc-bridge/internal/proc"
 )
 
 // ErrClosed is returned by calls made after the sidecar exited.

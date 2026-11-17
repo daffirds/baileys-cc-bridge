@@ -11,8 +11,8 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/engine"
-	"github.com/daffirds/bailey-cc-bridge/internal/proc"
+	"github.com/daffirds/baileys-cc-bridge/internal/engine"
+	"github.com/daffirds/baileys-cc-bridge/internal/proc"
 )
 
 // Models asks Claude Code which models it offers: the initialize request of its stream-json

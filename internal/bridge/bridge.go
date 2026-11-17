@@ -13,13 +13,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/app"
-	"github.com/daffirds/bailey-cc-bridge/internal/config"
-	"github.com/daffirds/bailey-cc-bridge/internal/engine"
-	"github.com/daffirds/bailey-cc-bridge/internal/engine/claude"
-	"github.com/daffirds/bailey-cc-bridge/internal/engine/codex"
-	"github.com/daffirds/bailey-cc-bridge/internal/tools"
-	"github.com/daffirds/bailey-cc-bridge/internal/whatsapp"
+	"github.com/daffirds/baileys-cc-bridge/internal/app"
+	"github.com/daffirds/baileys-cc-bridge/internal/config"
+	"github.com/daffirds/baileys-cc-bridge/internal/engine"
+	"github.com/daffirds/baileys-cc-bridge/internal/engine/claude"
+	"github.com/daffirds/baileys-cc-bridge/internal/engine/codex"
+	"github.com/daffirds/baileys-cc-bridge/internal/tools"
+	"github.com/daffirds/baileys-cc-bridge/internal/whatsapp"
 )
 
 // WhatsApp is the part of the sidecar client the bridge uses (*whatsapp.Client).
@@ -113,7 +113,7 @@ func (b *Bridge) Run(ctx context.Context) error {
 			case "closed":
 				return whatsapp.ClosedError(ev.Reason)
 			case "qr":
-				return errors.New("WhatsApp wants this Mac linked again: run `bailey-cc-bridge logout`, then `login`")
+				return errors.New("WhatsApp wants this Mac linked again: run `baileys-cc-bridge logout`, then `login`")
 			}
 		}
 	}

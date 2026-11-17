@@ -13,8 +13,8 @@ import (
 
 	"github.com/skip2/go-qrcode"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/app"
-	"github.com/daffirds/bailey-cc-bridge/internal/whatsapp"
+	"github.com/daffirds/baileys-cc-bridge/internal/app"
+	"github.com/daffirds/baileys-cc-bridge/internal/whatsapp"
 )
 
 // maxQRCodes bounds login to about five minutes: WhatsApp shows each code for ~20 seconds.

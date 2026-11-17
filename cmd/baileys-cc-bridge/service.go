@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/app"
-	"github.com/daffirds/bailey-cc-bridge/internal/webui"
-	"github.com/daffirds/bailey-cc-bridge/internal/whatsapp"
+	"github.com/daffirds/baileys-cc-bridge/internal/app"
+	"github.com/daffirds/baileys-cc-bridge/internal/webui"
+	"github.com/daffirds/baileys-cc-bridge/internal/whatsapp"
 )
 
 // The bridge runs in the background as a launchd agent of the logged-in user: it starts at login
@@ -46,7 +46,7 @@ func runInstall(ctx context.Context, args []string) error {
 		return err
 	}
 	if strings.Contains(exe, "go-build") {
-		return errors.New("install from a built binary: go build -o ~/.local/bin/bailey-cc-bridge ./cmd/bailey-cc-bridge")
+		return errors.New("install from a built binary: go build -o ~/.local/bin/baileys-cc-bridge ./cmd/baileys-cc-bridge")
 	}
 	if err := os.MkdirAll(app.Home(), 0o700); err != nil {
 		return err
@@ -105,7 +105,7 @@ func runUninstall(_ context.Context, args []string) error {
 // so it carries this shell's PATH (agents run git, node, brew tools…) and locale.
 func plist(exe string) string {
 	env := map[string]string{"PATH": cleanPath(os.Getenv("PATH")), "LANG": cmp.Or(os.Getenv("LANG"), "en_US.UTF-8")}
-	for _, k := range []string{"SHELL", "BAILEY_CC_BRIDGE_HOME", "CLAUDE_CONFIG_DIR", "CODEX_HOME"} {
+	for _, k := range []string{"SHELL", "BAILEYS_CC_BRIDGE_HOME", "CLAUDE_CONFIG_DIR", "CODEX_HOME"} {
 		if v := os.Getenv(k); v != "" {
 			env[k] = v
 		}

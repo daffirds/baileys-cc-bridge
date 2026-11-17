@@ -1,4 +1,4 @@
-// The WhatsApp side of bailey-cc-bridge. The Go daemon runs this file with node and talks to it in
+// The WhatsApp side of baileys-cc-bridge. The Go daemon runs this file with node and talks to it in
 // JSON lines: requests on stdin, responses and events on stdout. It holds the Baileys connection and
 // nothing else. The whitelist, the sessions and the agents all live on the Go side.
 //

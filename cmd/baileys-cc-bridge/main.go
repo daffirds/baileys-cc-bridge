@@ -1,4 +1,4 @@
-// Command bailey-cc-bridge connects whitelisted WhatsApp chats to Claude Code or Codex
+// Command baileys-cc-bridge connects whitelisted WhatsApp chats to Claude Code or Codex
 // sessions running on this Mac.
 package main
 
@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"text/tabwriter"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/app"
+	"github.com/daffirds/baileys-cc-bridge/internal/app"
 )
 
 type command struct {
@@ -65,5 +65,5 @@ func usage() {
 		fmt.Fprintf(w, "  %s\t%s\n", c.name, c.summary)
 	}
 	_ = w.Flush()
-	fmt.Fprintf(os.Stderr, "\nFiles live in %s (set BAILEY_CC_BRIDGE_HOME to move them).\n", app.Home())
+	fmt.Fprintf(os.Stderr, "\nFiles live in %s (set BAILEYS_CC_BRIDGE_HOME to move them).\n", app.Home())
 }

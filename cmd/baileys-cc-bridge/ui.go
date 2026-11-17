@@ -8,14 +8,14 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/webui"
+	"github.com/daffirds/baileys-cc-bridge/internal/webui"
 )
 
 // runUI opens the panel of the running bridge.
 func runUI(context.Context, []string) error {
 	b, err := os.ReadFile(webui.LinkFile())
 	if err != nil {
-		return errors.New("the bridge is not running: `bailey-cc-bridge install` keeps it running in the background (or `run` in a terminal)")
+		return errors.New("the bridge is not running: `baileys-cc-bridge install` keeps it running in the background (or `run` in a terminal)")
 	}
 	link := strings.TrimSpace(string(b))
 	fmt.Println(link)

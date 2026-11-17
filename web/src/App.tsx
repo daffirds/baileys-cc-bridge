@@ -86,7 +86,7 @@ export function App() {
   return (
     <main className="page">
       <header className="top">
-        <h1>bailey-cc-bridge</h1>
+        <h1>baileys-cc-bridge</h1>
       </header>
       <Linking status={status} />
       {error && <p className="error">{error}</p>}
@@ -208,7 +208,7 @@ function Panel({ status }: { status: Status }) {
     <main className="page">
       <header className="top">
         <div>
-          <h1>bailey-cc-bridge</h1>
+          <h1>baileys-cc-bridge</h1>
           <p className="muted">
             WhatsApp <b>{who}</b>
             {state && (

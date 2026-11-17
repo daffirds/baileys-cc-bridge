@@ -13,7 +13,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/app"
+	"github.com/daffirds/baileys-cc-bridge/internal/app"
 )
 
 // Engines.
@@ -42,7 +42,7 @@ type Agent struct {
 	Model    string `yaml:"model,omitempty" json:"model,omitempty"`       // "" = the CLI's own default
 	Effort   string `yaml:"effort,omitempty" json:"effort,omitempty"`     // reasoning effort; "" = the model's default
 	Autonomy string `yaml:"autonomy,omitempty" json:"autonomy,omitempty"` // auto (default) | full | readonly
-	// Workdir is where the agent runs. "" = the chat's own folder under ~/.bailey-cc-bridge/chats.
+	// Workdir is where the agent runs. "" = the chat's own folder under ~/.baileys-cc-bridge/chats.
 	Workdir string `yaml:"workdir,omitempty" json:"workdir,omitempty"`
 	// SystemPrompt replaces the bridge's built-in system prompt for this chat; "" keeps the
 	// built-in one. {owner}, {number}, {chat}, {chat_kind} and {chat_jid} are filled in.

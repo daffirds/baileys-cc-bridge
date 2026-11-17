@@ -6,15 +6,15 @@ import (
 	"path/filepath"
 )
 
-const Name = "bailey-cc-bridge"
+const Name = "baileys-cc-bridge"
 
-// Version is set at build time: go build -ldflags "-X github.com/daffirds/bailey-cc-bridge/internal/app.Version=v0.1.0".
+// Version is set at build time: go build -ldflags "-X github.com/daffirds/baileys-cc-bridge/internal/app.Version=v0.1.0".
 var Version = "dev"
 
 // Home is the directory for the WhatsApp credentials, the sidecar and each linked number's data:
-// $BAILEY_CC_BRIDGE_HOME, or ~/.bailey-cc-bridge.
+// $BAILEYS_CC_BRIDGE_HOME, or ~/.baileys-cc-bridge.
 func Home() string {
-	if dir := os.Getenv("BAILEY_CC_BRIDGE_HOME"); dir != "" {
+	if dir := os.Getenv("BAILEYS_CC_BRIDGE_HOME"); dir != "" {
 		return dir
 	}
 	home, err := os.UserHomeDir()

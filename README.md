@@ -1,4 +1,4 @@
-# bailey-cc-bridge
+# baileys-cc-bridge
 
 Bridges whitelisted WhatsApp chats to Claude Code or Codex sessions on your Mac. Every message in a
 whitelisted chat goes to that chat's own agent session, even mid-turn. The agent answers with tools:
@@ -22,21 +22,21 @@ WhatsApp ── Baileys (node sidecar) ── bridge (Go) ── claude -p strea
 Needs macOS, Go 1.26+, Node 22.18+, and `claude` and/or `codex` installed and logged in.
 
 ```sh
-go build -o ~/.local/bin/bailey-cc-bridge ./cmd/bailey-cc-bridge
-bailey-cc-bridge install   # from now on it runs in the background, and opens its panel
+go build -o ~/.local/bin/baileys-cc-bridge ./cmd/baileys-cc-bridge
+baileys-cc-bridge install   # from now on it runs in the background, and opens its panel
 ```
 
 The bridge then runs in the background with no terminal: it starts when you log in and restarts if it
-crashes. Its panel is on 127.0.0.1:9999 (bookmark the link, or open it with `bailey-cc-bridge ui`):
+crashes. Its panel is on 127.0.0.1:9999 (bookmark the link, or open it with `baileys-cc-bridge ui`):
 scan its QR code (WhatsApp → Settings → Linked devices), then pick chats, engines and folders.
 Logging out there unlinks the number and shows a new QR code, so another number can take over.
 
 `uninstall` stops it; `run` runs it in a terminal instead (Ctrl-C stops). The first connection
-installs the sidecar's npm packages under `~/.bailey-cc-bridge/sidecar`.
+installs the sidecar's npm packages under `~/.baileys-cc-bridge/sidecar`.
 
 ## Config
 
-`~/.bailey-cc-bridge/<number>/config.yaml`, edited in the panel or by hand (see [config.example.yaml](config.example.yaml)).
+`~/.baileys-cc-bridge/<number>/config.yaml`, edited in the panel or by hand (see [config.example.yaml](config.example.yaml)).
 A running bridge applies changes within seconds. A chat whose settings changed gets them with its next message, once its agent is idle, so an agent is never cut off mid-task.
 
 | Key | Default | |
@@ -44,7 +44,7 @@ A running bridge applies changes within seconds. A chat whose settings changed g
 | `engine` | `claude` | `claude` or `codex` |
 | `autonomy` | `auto` | `auto`: the engine's own reviewer · `full`: no prompts, no sandbox · `readonly` |
 | `model`, `effort` | CLI default | |
-| `workdir` | `~/.bailey-cc-bridge/<number>/chats/<chat>` | where the agent runs; must exist |
+| `workdir` | `~/.baileys-cc-bridge/<number>/chats/<chat>` | where the agent runs; must exist |
 | `system_prompt` | built in | the whole system prompt the agent gets, replacing the built-in one; `{owner}`, `{number}`, `{chat}`, `{chat_kind}` and `{chat_jid}` are filled in |
 | `footer` | `true` | puts _Assisted by Claude_ (or _Codex_) under every message and caption the agent sends |
 
@@ -64,7 +64,7 @@ The agent gets an MCP server named `whatsapp`, bound to its chat:
 | `chat_info` | a group's name, description and members (names, numbers, admins), or who a direct chat is with |
 
 `chat` can point a tool at another whitelisted chat, never at one outside the list. Incoming
-attachments are saved to `.bailey-cc-bridge/media/` in the agent's folder and the path is given to
+attachments are saved to `.baileys-cc-bridge/media/` in the agent's folder and the path is given to
 the agent.
 
 ## Commands
@@ -82,19 +82,19 @@ connection would make WhatsApp drop the first.
 
 ## Files
 
-`~/.bailey-cc-bridge/` holds `auth/` (the linked device's WhatsApp credentials), `sidecar/`,
+`~/.baileys-cc-bridge/` holds `auth/` (the linked device's WhatsApp credentials), `sidecar/`,
 `bridge.log` (the background bridge's log),
 `panel.token` (the panel link's token, kept so a bookmark keeps working) and one folder per number that has been linked, so another number never shares a chat's conversation:
 
 ```
-~/.bailey-cc-bridge/<number>/
+~/.baileys-cc-bridge/<number>/
   config.yaml   the whitelist
   state.json    each chat's conversation id
   names.json    names learned from senders, for prompts and chat_info
   chats/<chat>/ each chat's default folder
 ```
 
-The bridge's own files for a chat live in `.bailey-cc-bridge/` inside the agent's folder, so a
+The bridge's own files for a chat live in `.baileys-cc-bridge/` inside the agent's folder, so a
 working directory that is a real project gets one hidden folder and nothing else. It ignores itself
 in git. The conversations themselves are the CLIs' own (`~/.claude/projects`, `~/.codex/sessions`).
 

@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/bridge"
-	"github.com/daffirds/bailey-cc-bridge/internal/engine"
+	"github.com/daffirds/baileys-cc-bridge/internal/bridge"
+	"github.com/daffirds/baileys-cc-bridge/internal/engine"
 )
 
 // listModels lists an engine's models and their efforts, as its CLI reports them.

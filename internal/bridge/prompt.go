@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/config"
-	"github.com/daffirds/bailey-cc-bridge/internal/whatsapp"
+	"github.com/daffirds/baileys-cc-bridge/internal/config"
+	"github.com/daffirds/baileys-cc-bridge/internal/whatsapp"
 )
 
 // DefaultSystemPrompt is the system prompt a chat's agent gets unless the chat sets its own

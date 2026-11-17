@@ -1,4 +1,4 @@
-module github.com/daffirds/bailey-cc-bridge
+module github.com/daffirds/baileys-cc-bridge
 
 go 1.26
 

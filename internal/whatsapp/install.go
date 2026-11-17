@@ -11,8 +11,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/app"
-	"github.com/daffirds/bailey-cc-bridge/sidecar"
+	"github.com/daffirds/baileys-cc-bridge/internal/app"
+	"github.com/daffirds/baileys-cc-bridge/sidecar"
 )
 
 // SidecarDir is where the embedded sidecar is installed and run from.
@@ -41,7 +41,7 @@ func install(ctx context.Context, log *slog.Logger) (string, error) {
 	lock, _ := sidecar.Files.ReadFile("package-lock.json")
 	sum := sha256.Sum256(lock)
 	want := hex.EncodeToString(sum[:])
-	marker := filepath.Join(dir, "node_modules", ".bailey-cc-bridge-lock")
+	marker := filepath.Join(dir, "node_modules", ".baileys-cc-bridge-lock")
 	if got, err := os.ReadFile(marker); err == nil && string(got) == want {
 		return dir, nil
 	}

@@ -10,18 +10,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/config"
-	"github.com/daffirds/bailey-cc-bridge/internal/engine"
-	"github.com/daffirds/bailey-cc-bridge/internal/engine/claude"
-	"github.com/daffirds/bailey-cc-bridge/internal/tools"
-	"github.com/daffirds/bailey-cc-bridge/internal/whatsapp"
+	"github.com/daffirds/baileys-cc-bridge/internal/config"
+	"github.com/daffirds/baileys-cc-bridge/internal/engine"
+	"github.com/daffirds/baileys-cc-bridge/internal/engine/claude"
+	"github.com/daffirds/baileys-cc-bridge/internal/tools"
+	"github.com/daffirds/baileys-cc-bridge/internal/whatsapp"
 )
 
 // session is one chat's agent. Its goroutine (run) owns the CLI process: it starts it on the first
 // message and steers every later message into it.
 type session struct {
 	b      *Bridge
-	dir    string // the chat's own folder, ~/.bailey-cc-bridge/<number>/chats/<chat>
+	dir    string // the chat's own folder, ~/.baileys-cc-bridge/<number>/chats/<chat>
 	log    *slog.Logger
 	inbox  chan *whatsapp.Message
 	ctx    context.Context
@@ -93,14 +93,14 @@ func (s *session) folder() (string, error) {
 	return s.chat.Workdir, nil
 }
 
-// mediaDir is where attachments are saved: .bailey-cc-bridge/media in the agent's folder. The
-// .bailey-cc-bridge folder git-ignores itself, so a folder that is a repo stays clean.
+// mediaDir is where attachments are saved: .baileys-cc-bridge/media in the agent's folder. The
+// .baileys-cc-bridge folder git-ignores itself, so a folder that is a repo stays clean.
 func (s *session) mediaDir() (string, error) {
 	folder, err := s.folder()
 	if err != nil {
 		return "", err
 	}
-	own := filepath.Join(folder, ".bailey-cc-bridge")
+	own := filepath.Join(folder, ".baileys-cc-bridge")
 	dir := filepath.Join(own, "media")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", err

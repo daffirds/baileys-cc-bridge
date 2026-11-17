@@ -11,7 +11,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/app"
+	"github.com/daffirds/baileys-cc-bridge/internal/app"
 )
 
 // ErrLoggedOut means WhatsApp unlinked this Mac: the device was removed on the phone, or a logout.
@@ -20,7 +20,7 @@ var ErrLoggedOut = errors.New("WhatsApp logged this Mac out (the device was unli
 // Connect starts the sidecar and waits until it is connected to WhatsApp as the linked account.
 func Connect(ctx context.Context, o Options) (*Client, *Me, error) {
 	if _, ok := Linked(); !ok {
-		return nil, nil, errors.New("this Mac is not linked to WhatsApp yet: run `bailey-cc-bridge login`")
+		return nil, nil, errors.New("this Mac is not linked to WhatsApp yet: run `baileys-cc-bridge login`")
 	}
 	c, err := Start(ctx, o)
 	if err != nil {
@@ -39,12 +39,12 @@ func Connect(ctx context.Context, o Options) (*Client, *Me, error) {
 				return c, ev.Me, nil
 			case "qr":
 				_ = c.Close()
-				return nil, nil, errors.New("WhatsApp no longer accepts this Mac's credentials: run `bailey-cc-bridge logout`, then `login`")
+				return nil, nil, errors.New("WhatsApp no longer accepts this Mac's credentials: run `baileys-cc-bridge logout`, then `login`")
 			case "closed":
 				_ = c.Close()
 				err := ClosedError(ev.Reason)
 				if errors.Is(err, ErrLoggedOut) {
-					err = fmt.Errorf("%w: run `bailey-cc-bridge logout`, then link again", err)
+					err = fmt.Errorf("%w: run `baileys-cc-bridge logout`, then link again", err)
 				}
 				return nil, nil, err
 			}

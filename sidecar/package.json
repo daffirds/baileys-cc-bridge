@@ -1,8 +1,8 @@
 {
-  "name": "bailey-cc-bridge-sidecar",
+  "name": "baileys-cc-bridge-sidecar",
   "private": true,
   "type": "module",
-  "description": "Holds the WhatsApp connection (Baileys) for bailey-cc-bridge and speaks JSON lines on stdin/stdout.",
+  "description": "Holds the WhatsApp connection (Baileys) for baileys-cc-bridge and speaks JSON lines on stdin/stdout.",
   "engines": {
     "node": ">=22.18"
   },

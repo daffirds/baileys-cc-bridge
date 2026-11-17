@@ -18,9 +18,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/config"
-	"github.com/daffirds/bailey-cc-bridge/internal/engine"
-	"github.com/daffirds/bailey-cc-bridge/internal/proc"
+	"github.com/daffirds/baileys-cc-bridge/internal/config"
+	"github.com/daffirds/baileys-cc-bridge/internal/engine"
+	"github.com/daffirds/baileys-cc-bridge/internal/proc"
 )
 
 type Engine struct{}
@@ -28,7 +28,7 @@ type Engine struct{}
 func (Engine) Start(_ context.Context, spec engine.Spec) (_ engine.Session, err error) {
 	// The prompt and the MCP config (its URL is the tool server's secret, so not a command-line
 	// argument) go to files that only live as long as the process.
-	dir, err := os.MkdirTemp("", "bailey-cc-bridge-claude-")
+	dir, err := os.MkdirTemp("", "baileys-cc-bridge-claude-")
 	if err != nil {
 		return nil, err
 	}
@@ -363,7 +363,7 @@ func (s *session) answerControl(m *streamLine) {
 		ToolName string `json:"tool_name"`
 	}
 	_ = json.Unmarshal(m.Request, &req)
-	resp := map[string]any{"subtype": "error", "request_id": m.RequestID, "error": "not supported by bailey-cc-bridge"}
+	resp := map[string]any{"subtype": "error", "request_id": m.RequestID, "error": "not supported by baileys-cc-bridge"}
 	if req.Subtype == "can_use_tool" {
 		resp = map[string]any{"subtype": "success", "request_id": m.RequestID, "response": map[string]any{
 			"behavior": "deny",

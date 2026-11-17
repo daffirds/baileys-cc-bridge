@@ -11,7 +11,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/engine"
+	"github.com/daffirds/baileys-cc-bridge/internal/engine"
 )
 
 // rpc is a minimal JSON-RPC 2.0 peer over newline-delimited stdio (codex app-server).

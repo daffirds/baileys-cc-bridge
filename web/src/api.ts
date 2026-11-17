@@ -1,4 +1,4 @@
-// The JSON API of the panel, served by `bailey-cc-bridge run`. Every call carries the token from the
+// The JSON API of the panel, served by `baileys-cc-bridge run`. Every call carries the token from the
 // panel's link (#t=…).
 
 export type Agent = {

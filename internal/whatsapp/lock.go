@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/app"
+	"github.com/daffirds/baileys-cc-bridge/internal/app"
 )
 
 // ErrBusy means another process holds the WhatsApp connection.
-var ErrBusy = errors.New("another bailey-cc-bridge process is connected to WhatsApp (is `run` running?)")
+var ErrBusy = errors.New("another baileys-cc-bridge process is connected to WhatsApp (is `run` running?)")
 
 // lockConnection makes sure one process at a time connects with these credentials: a second
 // connection makes WhatsApp drop the first, and a running bridge would miss messages meanwhile.

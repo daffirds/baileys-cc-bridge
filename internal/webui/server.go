@@ -21,8 +21,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/app"
-	"github.com/daffirds/bailey-cc-bridge/internal/whatsapp"
+	"github.com/daffirds/baileys-cc-bridge/internal/app"
+	"github.com/daffirds/baileys-cc-bridge/internal/whatsapp"
 )
 
 //go:embed all:dist
@@ -58,7 +58,7 @@ type server struct {
 	models  modelCache
 }
 
-// LinkFile holds the running panel's link, for `bailey-cc-bridge ui`.
+// LinkFile holds the running panel's link, for `baileys-cc-bridge ui`.
 func LinkFile() string { return filepath.Join(app.Home(), "panel.url") }
 
 // Start serves the panel until ctx ends and returns its link, which it also writes to LinkFile.
@@ -155,7 +155,7 @@ func (s *server) guard(next http.Handler) http.Handler {
 				return
 			}
 			if subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Bridge-Token")), []byte(s.token)) != 1 {
-				writeErr(w, http.StatusUnauthorized, errors.New("open the panel with `bailey-cc-bridge ui`"))
+				writeErr(w, http.StatusUnauthorized, errors.New("open the panel with `baileys-cc-bridge ui`"))
 				return
 			}
 		}

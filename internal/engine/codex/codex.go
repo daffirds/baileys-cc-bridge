@@ -14,10 +14,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/app"
-	"github.com/daffirds/bailey-cc-bridge/internal/config"
-	"github.com/daffirds/bailey-cc-bridge/internal/engine"
-	"github.com/daffirds/bailey-cc-bridge/internal/proc"
+	"github.com/daffirds/baileys-cc-bridge/internal/app"
+	"github.com/daffirds/baileys-cc-bridge/internal/config"
+	"github.com/daffirds/baileys-cc-bridge/internal/engine"
+	"github.com/daffirds/baileys-cc-bridge/internal/proc"
 )
 
 type Engine struct{}
@@ -86,7 +86,7 @@ func (s *session) initialize(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
 	err := s.rpc.call(ctx, "initialize", map[string]any{
-		"clientInfo":   map[string]any{"name": "bailey_cc_bridge", "title": app.Name, "version": app.Version},
+		"clientInfo":   map[string]any{"name": "baileys_cc_bridge", "title": app.Name, "version": app.Version},
 		"capabilities": map[string]any{"experimentalApi": true},
 	}, nil)
 	if err != nil {

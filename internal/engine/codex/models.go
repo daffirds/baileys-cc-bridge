@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/engine"
+	"github.com/daffirds/baileys-cc-bridge/internal/engine"
 )
 
 // Models asks codex which models it offers (model/list on the app-server). No thread is started.
