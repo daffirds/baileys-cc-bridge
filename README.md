@@ -45,9 +45,9 @@ npm install -g baileys-cc-bridge
 baileys-cc-bridge install        # runs in the background from now on, and opens its panel
 ```
 
-The panel shows a QR code. Scan it from the phone whose number the agent will use (WhatsApp →
-Settings → Linked devices). A spare number works best. Your own works too, but then the agent writes
-as you.
+The panel opens in your browser on `127.0.0.1:9999` and shows a QR code. Scan it from the phone whose 
+number the agent will use (WhatsApp → Settings → Linked devices). A spare number works best. Your own 
+works too, but then the agent writes as you.
 
 Then pick the chats it listens to; it ignores every other chat. Each one gets its own engine, model,
 folder and prompt.
