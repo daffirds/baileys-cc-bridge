@@ -60,7 +60,7 @@ function fillPrompt(prompt: string, chat: Chat, a: Account) {
 const isGroup = (jid: string) => jid.endsWith('@g.us');
 
 // Avatar stands in for a chat's picture: a group icon, a person's initials, or you.
-function Avatar({ chat, me }: { chat: Chat; me: string }) {
+function Avatar({ chat, me, small }: { chat: Chat; me: string; small?: boolean }) {
   const you = chat.jid === me;
   const initials = (chat.name ?? '')
     .split(/\s+/)
@@ -71,8 +71,8 @@ function Avatar({ chat, me }: { chat: Chat; me: string }) {
   let hue = 0;
   for (const c of chat.jid) hue = (hue * 31 + c.charCodeAt(0)) % 360;
   return (
-    <span className={you ? 'avatar you' : 'avatar'} style={{ '--h': hue } as CSSProperties} aria-hidden="true">
-      {isGroup(chat.jid) ? <Icon name="group" size={20} /> : you || !initials ? <Icon name="user" size={20} /> : initials}
+    <span className={`avatar${you ? ' you' : ''}${small ? ' small' : ''}`} style={{ '--h': hue } as CSSProperties} aria-hidden="true">
+      {isGroup(chat.jid) ? <Icon name="group" size={small ? 17 : 20} /> : you || !initials ? <Icon name="user" size={small ? 17 : 20} /> : initials}
     </span>
   );
 }
@@ -87,6 +87,19 @@ function Who({ chat, me }: { chat: Chat; me: string }) {
         <span className="jid">{chat.jid}</span>
       </div>
     </>
+  );
+}
+
+// Option is a chat to pick in the new conversation modal. A long name is cut short with "…".
+function Option({ chat, me, label, detail, onPick }: { chat: Chat; me: string; label: string; detail: string; onPick: (c: Chat) => void }) {
+  return (
+    <li>
+      <button type="button" title={label} onClick={() => onPick(chat)}>
+        <Avatar chat={chat} me={me} small />
+        <span className="option-name">{label}</span>
+        <span className="option-detail">{detail}</span>
+      </button>
+    </li>
   );
 }
 
@@ -697,11 +710,14 @@ function GroupPicker({ have, onPick, onBack }: { have: Set<string>; onPick: (c: 
       <input autoFocus value={q} placeholder="Search your groups" onChange={(e) => setQ(e.target.value)} />
       <ul className="options scroll">
         {list.slice(0, 100).map((g) => (
-          <li key={g.jid}>
-            <button type="button" onClick={() => onPick({ jid: g.jid, name: g.name })}>
-              {g.name} <span className="muted">{g.size === 1 ? '1 member' : `${g.size} members`}</span>
-            </button>
-          </li>
+          <Option
+            key={g.jid}
+            chat={{ jid: g.jid, name: g.name }}
+            me=""
+            label={g.name}
+            detail={g.size === 1 ? '1 member' : `${g.size} members`}
+            onPick={onPick}
+          />
         ))}
       </ul>
       {!groups && !err && <p className="muted small">Loading your groups…</p>}
@@ -740,26 +756,19 @@ function PersonPicker({ me, have, onPick, onBack }: { me: string; have: Set<stri
     <>
       <input autoFocus value={q} placeholder="Search by name, or type a phone number with country code" onChange={(e) => setQ(e.target.value)} />
       <ul className="options scroll">
-        {showMe && (
-          <li>
-            <button type="button" onClick={() => onPick({ jid: me, name: 'Me' })}>
-              You <span className="muted">“Message yourself”</span>
-            </button>
-          </li>
-        )}
+        {showMe && <Option chat={{ jid: me, name: 'Me' }} me={me} label="You" detail="“Message yourself”" onPick={onPick} />}
         {typed && (
-          <li>
-            <button type="button" onClick={() => onPick({ jid: `${number}@s.whatsapp.net`, name: `+${number}` })}>
-              +{number} <span className="muted">this number</span>
-            </button>
-          </li>
+          <Option chat={{ jid: `${number}@s.whatsapp.net`, name: `+${number}` }} me={me} label={`+${number}`} detail="this number" onPick={onPick} />
         )}
         {list.slice(0, 100).map((p) => (
-          <li key={p.jid}>
-            <button type="button" onClick={() => onPick({ jid: p.jid, name: p.name || `+${p.jid.split('@')[0]}` })}>
-              {p.name} <span className="muted">+{p.jid.split('@')[0]}</span>
-            </button>
-          </li>
+          <Option
+            key={p.jid}
+            chat={{ jid: p.jid, name: p.name || `+${p.jid.split('@')[0]}` }}
+            me={me}
+            label={p.name || `+${p.jid.split('@')[0]}`}
+            detail={`+${p.jid.split('@')[0]}`}
+            onPick={onPick}
+          />
         ))}
       </ul>
       {!people && <p className="muted small">Loading…</p>}

@@ -361,6 +361,12 @@ button.link:hover {
   background: hsl(var(--h) 65% 91%);
 }
 
+.avatar.small {
+  width: 34px;
+  height: 34px;
+  font-size: 13px;
+}
+
 .avatar.you {
   color: var(--accent-ink);
   background: var(--accent-soft);
@@ -412,8 +418,9 @@ button.link:hover {
 .options button {
   width: 100%;
   justify-content: flex-start;
+  gap: 12px;
   margin: 2px 0;
-  padding: 10px 12px;
+  padding: 8px 10px;
   border-color: transparent;
   background: transparent;
   font-weight: 500;
@@ -423,6 +430,19 @@ button.link:hover {
 .options button:hover {
   border-color: transparent;
   background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+.option-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.option-detail {
+  flex: none;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .row.end {
