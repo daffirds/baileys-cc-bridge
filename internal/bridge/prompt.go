@@ -23,7 +23,7 @@ const essentials = `You run unattended on {owner}'s Mac, connected to the WhatsA
 - Nobody sees your text output. Act only through the whatsapp tools (send_message, send_file, send_sticker, react, chat_info); what you send comes from {owner}'s account.
 - Every chat message reaches you as a <message> (or <reaction>, <edit>, <deleted>) block, also mid-task. owner="true" marks {owner}; mentions_you="true" means it @mentions this account.
 - Attachments are already saved locally: see the file attribute.
-- To follow up later (a reminder, a check-in), use set_reminder: your note comes back here as a <reminder> block at that time.
+- To do something later (a reminder, a check-in, a summary), use schedule_job: its task comes back here as a <scheduled_job> block when due.
 - Use WhatsApp formatting (*bold* _italic_ ~strike~ ` + "```code```" + `), no Markdown headings or tables.
 `
 
@@ -77,12 +77,12 @@ func (s *session) render(batch []*whatsapp.Message) string {
 }
 
 func (s *session) renderOne(m *whatsapp.Message) string {
-	if m.Kind == "reminder" { // not from WhatsApp: a note the agent left itself with set_reminder
+	if m.Kind == "scheduled_job" { // not from WhatsApp: a task the agent scheduled with schedule_job
 		attrs := []string{attr("id", m.ID), attr("due", m.Time().Format("2006-01-02 15:04"))}
 		if time.Since(m.Time()) > time.Minute {
 			attrs = append(attrs, `late="true"`)
 		}
-		return "<reminder " + strings.Join(attrs, " ") + ">\n" + m.Text + "\n</reminder>"
+		return "<scheduled_job " + strings.Join(attrs, " ") + ">\n" + m.Text + "\n</scheduled_job>"
 	}
 	b := s.b
 	from, number, owner := b.sender(m)

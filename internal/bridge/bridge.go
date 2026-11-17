@@ -32,15 +32,15 @@ type WhatsApp interface {
 }
 
 type Bridge struct {
-	cfgPath   string
-	wa        WhatsApp
-	me        *whatsapp.Me
-	host      *tools.Host
-	baseURL   string // where host is served, e.g. http://127.0.0.1:53123
-	dir       string // the linked number's folder (app.AccountDir)
-	log       *slog.Logger
-	state     *state
-	reminders *reminders
+	cfgPath string
+	wa      WhatsApp
+	me      *whatsapp.Me
+	host    *tools.Host
+	baseURL string // where host is served, e.g. http://127.0.0.1:53123
+	dir     string // the linked number's folder (app.AccountDir)
+	log     *slog.Logger
+	state   *state
+	jobs    *jobs
 
 	mu       sync.Mutex
 	cfg      *config.Config      // replaced when config.yaml changes
@@ -98,13 +98,13 @@ func SignedIn(ctx context.Context, name string) (bool, error) {
 func New(cfg *config.Config, cfgPath string, wa WhatsApp, me *whatsapp.Me, host *tools.Host, baseURL string, log *slog.Logger) *Bridge {
 	return &Bridge{
 		cfg: cfg, cfgPath: cfgPath, wa: wa, me: me, host: host, baseURL: baseURL, log: log,
-		dir:       app.AccountDir(user(me.ID)),
-		state:     loadState(filepath.Join(app.AccountDir(user(me.ID)), "state.json")),
-		reminders: loadReminders(filepath.Join(app.AccountDir(user(me.ID)), "reminders.json")),
-		sessions:  map[string]*session{},
-		notes:     newRing[note](5000),
-		last:      map[string]string{},
-		ignored:   map[string]bool{},
+		dir:      app.AccountDir(user(me.ID)),
+		state:    loadState(filepath.Join(app.AccountDir(user(me.ID)), "state.json")),
+		jobs:     loadJobs(filepath.Join(app.AccountDir(user(me.ID)), "jobs.json")),
+		sessions: map[string]*session{},
+		notes:    newRing[note](5000),
+		last:     map[string]string{},
+		ignored:  map[string]bool{},
 	}
 }
 
@@ -114,7 +114,7 @@ func (b *Bridge) Run(ctx context.Context) error {
 	defer b.stop()
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	go b.remind(ctx)
+	go b.runJobs(ctx)
 	poll := time.NewTicker(3 * time.Second)
 	defer poll.Stop()
 	modified := modTime(b.cfgPath)

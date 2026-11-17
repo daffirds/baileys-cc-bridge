@@ -39,9 +39,9 @@ type Binding struct {
 	Sent func(chat, id, text string)
 	// Footer goes under every text and caption the agent sends, e.g. "Assisted by Claude"; "" for none.
 	Footer string
-	// Reminders are the chat's: what set_reminder sets comes back to this chat.
-	Reminders Reminders
-	Log       *slog.Logger
+	// Jobs are the chat's: what schedule_job schedules comes back to this chat.
+	Jobs Jobs
+	Log  *slog.Logger
 }
 
 // sign puts the footer under text.
@@ -66,12 +66,12 @@ func newServer(b *Binding) *mcp.Server {
 	mcp.AddTool(s, &mcp.Tool{Name: "chat_info",
 		Description: "Who is in the chat: a group's name, description and members (names, numbers, admins), or who a direct chat is with.",
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, b.chatInfo)
-	mcp.AddTool(s, &mcp.Tool{Name: "set_reminder",
-		Description: "Get a note back in this chat later: at that time it arrives here as a <reminder> block, like a message. " +
-			"Give in (from now) or at (local time)."}, b.setReminder)
-	mcp.AddTool(s, &mcp.Tool{Name: "list_reminders", Description: "The reminders set in this chat that haven't come due yet.",
-		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, b.listReminders)
-	mcp.AddTool(s, &mcp.Tool{Name: "cancel_reminder", Description: "Cancel a reminder set in this chat, by id."}, b.cancelReminder)
+	mcp.AddTool(s, &mcp.Tool{Name: "schedule_job",
+		Description: "Get a task back in this chat later (a reminder, a check-in, a summary): when due it arrives here as a " +
+			"<scheduled_job> block, like a message. Give in (from now) or at (local time)."}, b.scheduleJob)
+	mcp.AddTool(s, &mcp.Tool{Name: "list_jobs", Description: "The jobs scheduled in this chat that haven't come due yet.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, b.listJobs)
+	mcp.AddTool(s, &mcp.Tool{Name: "cancel_job", Description: "Cancel a job scheduled in this chat, by id."}, b.cancelJob)
 	return s
 }
 

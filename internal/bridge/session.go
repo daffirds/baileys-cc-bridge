@@ -267,7 +267,7 @@ func (s *session) start() error {
 	s.mcpPath = s.b.host.Register(&tools.Binding{
 		Chat: s.chat.JID, Self: s.b.me.ID, Owner: s.b.ownerName(), Workdir: workdir, WA: s.b.wa,
 		Resolve: s.b.resolve, LastIncoming: s.b.lastIncoming, Sent: s.b.sent, Footer: footer(s.chat),
-		Reminders: chatReminders{s.b.reminders, s.chat.JID}, Log: s.log,
+		Jobs: chatJobs{s.b.jobs, s.chat.JID}, Log: s.log,
 	})
 	spec := engine.Spec{
 		Binary: bin, Workdir: workdir, Instructions: instr,

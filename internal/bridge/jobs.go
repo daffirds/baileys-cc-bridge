@@ -1,0 +1,211 @@
+package bridge
+
+import (
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"os"
+	"path/filepath"
+	"slices"
+	"sync"
+	"time"
+
+	"github.com/daffirds/baileys-cc-bridge/internal/tools"
+	"github.com/daffirds/baileys-cc-bridge/internal/whatsapp"
+)
+
+// jobs keeps the jobs agents schedule (jobs.json) and hands each back to its chat when it comes
+// due. One that came due while the bridge was off arrives as soon as it is back, late.
+type jobs struct {
+	path    string
+	changed chan struct{} // the next one due may have changed
+
+	mu   sync.Mutex
+	list []job
+}
+
+type job struct {
+	ID   string    `json:"id"`
+	Chat string    `json:"chat"`
+	At   time.Time `json:"at"`
+	Task string    `json:"task"`
+}
+
+func loadJobs(path string) *jobs {
+	j := &jobs{path: path, changed: make(chan struct{}, 1)}
+	if b, err := os.ReadFile(path); err == nil {
+		_ = json.Unmarshal(b, &j.list)
+	}
+	return j
+}
+
+func (j *jobs) add(chat string, at time.Time, task string) (job, error) {
+	now := time.Now()
+	switch {
+	case !at.After(now):
+		return job{}, errors.New("that time has passed")
+	case at.After(now.AddDate(1, 0, 0)):
+		return job{}, errors.New("that is more than a year away")
+	}
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	jb := job{ID: j.newID(), Chat: chat, At: at, Task: task}
+	j.list = append(j.list, jb)
+	if err := j.save(); err != nil {
+		j.list = j.list[:len(j.list)-1]
+		return job{}, err
+	}
+	j.poke()
+	return jb, nil
+}
+
+// of lists chat's jobs, soonest first.
+func (j *jobs) of(chat string) []job {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	var out []job
+	for _, jb := range j.list {
+		if jb.Chat == chat {
+			out = append(out, jb)
+		}
+	}
+	slices.SortFunc(out, func(a, b job) int { return a.At.Compare(b.At) })
+	return out
+}
+
+func (j *jobs) cancel(chat, id string) bool {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	i := slices.IndexFunc(j.list, func(jb job) bool { return jb.Chat == chat && jb.ID == id })
+	if i < 0 {
+		return false
+	}
+	j.list = slices.Delete(j.list, i, i+1)
+	_ = j.save()
+	j.poke()
+	return true
+}
+
+// next is when the soonest job is due.
+func (j *jobs) next() (time.Time, bool) {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	var at time.Time
+	for _, jb := range j.list {
+		if at.IsZero() || jb.At.Before(at) {
+			at = jb.At
+		}
+	}
+	return at, !at.IsZero()
+}
+
+// take removes and returns the jobs due by now.
+func (j *jobs) take(now time.Time) []job {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	var due []job
+	j.list = slices.DeleteFunc(j.list, func(jb job) bool {
+		if jb.At.After(now) {
+			return false
+		}
+		due = append(due, jb)
+		return true
+	})
+	if len(due) > 0 {
+		_ = j.save()
+	}
+	return due
+}
+
+func (j *jobs) poke() {
+	select {
+	case j.changed <- struct{}{}:
+	default:
+	}
+}
+
+// newID is a short id no pending job has. Called with mu held.
+func (j *jobs) newID() string {
+	for {
+		b := make([]byte, 3)
+		_, _ = rand.Read(b)
+		id := "j" + hex.EncodeToString(b)
+		if !slices.ContainsFunc(j.list, func(jb job) bool { return jb.ID == id }) {
+			return id
+		}
+	}
+}
+
+// save writes the list. Called with mu held.
+func (j *jobs) save() error {
+	b, err := json.MarshalIndent(j.list, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(j.path), 0o700); err != nil {
+		return err
+	}
+	tmp := j.path + ".tmp"
+	if err := os.WriteFile(tmp, b, 0o600); err != nil {
+		return err
+	}
+	return os.Rename(tmp, j.path)
+}
+
+// runJobs hands each job to its chat as it comes due, until ctx ends.
+func (b *Bridge) runJobs(ctx context.Context) {
+	t := time.NewTimer(time.Hour)
+	defer t.Stop()
+	for {
+		wait := time.Hour
+		if at, ok := b.jobs.next(); ok {
+			wait = max(time.Until(at), 0)
+		}
+		t.Reset(wait)
+		select {
+		case <-ctx.Done():
+			return
+		case <-b.jobs.changed:
+		case <-t.C:
+			for _, jb := range b.jobs.take(time.Now()) {
+				b.deliverJob(jb)
+			}
+		}
+	}
+}
+
+// deliverJob gives a due job to its chat's agent the way a message comes in.
+func (b *Bridge) deliverJob(jb job) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	chat := b.cfg.Chat(jb.Chat)
+	if chat == nil {
+		b.log.Info("dropping a job for a chat that is no longer whitelisted", "jid", jb.Chat, "id", jb.ID)
+		return
+	}
+	b.log.Info("job due", "chat", chat.Name, "id", jb.ID)
+	b.session(chat).deliver(&whatsapp.Message{ID: jb.ID, Chat: chat.JID, Kind: "scheduled_job", Text: jb.Task, Timestamp: jb.At.Unix()})
+}
+
+// chatJobs is one chat's jobs, as its tools see them.
+type chatJobs struct {
+	j    *jobs
+	chat string
+}
+
+func (c chatJobs) Add(at time.Time, task string) (tools.Job, error) {
+	jb, err := c.j.add(c.chat, at, task)
+	return tools.Job{ID: jb.ID, At: jb.At, Task: jb.Task}, err
+}
+
+func (c chatJobs) List() []tools.Job {
+	var out []tools.Job
+	for _, jb := range c.j.of(c.chat) {
+		out = append(out, tools.Job{ID: jb.ID, At: jb.At, Task: jb.Task})
+	}
+	return out
+}
+
+func (c chatJobs) Cancel(id string) bool { return c.j.cancel(c.chat, id) }
