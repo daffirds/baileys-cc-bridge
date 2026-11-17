@@ -553,7 +553,8 @@ function ModelFields({ engine, model, effort, onChange }: {
 }
 
 // PromptField shows the whole system prompt the chat's agent gets: the built-in one until it is
-// edited. Nothing else is added to it. Its variables can be dragged in from a list beside it.
+// edited. Nothing else is added to it. Its variables can be dragged in from a list beside it, which
+// shows each one's value in this chat as a chip with its name under it.
 function PromptField({ chat, account, state, onChange }: { chat: Chat; account: Account; state: State; onChange: (c: Chat) => void }) {
   const [listing, setListing] = useState(false);
   const editor = useRef<HTMLTextAreaElement>(null);
@@ -598,7 +599,7 @@ function PromptField({ chat, account, state, onChange }: { chat: Chat; account: 
                 role="button"
                 tabIndex={0}
                 draggable
-                title={v.about}
+                title={`${v.value}\n${v.about}`}
                 onDragStart={(e) => {
                   e.dataTransfer.setData('text/plain', v.key);
                   e.dataTransfer.effectAllowed = 'copy';
@@ -611,8 +612,8 @@ function PromptField({ chat, account, state, onChange }: { chat: Chat; account: 
                   }
                 }}
               >
-                <span className="chip">{chipName(v.key)}</span>
-                <span className="var-value">{v.value}</span>
+                <span className="chip">{v.value || chipName(v.key)}</span>
+                <span className="var-name">{chipName(v.key)}</span>
               </div>
             ))}
           </aside>

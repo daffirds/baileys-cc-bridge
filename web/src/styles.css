@@ -1005,13 +1005,17 @@ button.toggle-chip.on {
 }
 
 .var .chip {
+  max-width: 100%;
+  overflow: hidden;
   padding: 3px 10px;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.var-value {
+.var-name {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
