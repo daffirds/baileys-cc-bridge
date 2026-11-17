@@ -32,14 +32,15 @@ type WhatsApp interface {
 }
 
 type Bridge struct {
-	cfgPath string
-	wa      WhatsApp
-	me      *whatsapp.Me
-	host    *tools.Host
-	baseURL string // where host is served, e.g. http://127.0.0.1:53123
-	dir     string // the linked number's folder (app.AccountDir)
-	log     *slog.Logger
-	state   *state
+	cfgPath   string
+	wa        WhatsApp
+	me        *whatsapp.Me
+	host      *tools.Host
+	baseURL   string // where host is served, e.g. http://127.0.0.1:53123
+	dir       string // the linked number's folder (app.AccountDir)
+	log       *slog.Logger
+	state     *state
+	reminders *reminders
 
 	mu       sync.Mutex
 	cfg      *config.Config      // replaced when config.yaml changes
@@ -97,12 +98,13 @@ func SignedIn(ctx context.Context, name string) (bool, error) {
 func New(cfg *config.Config, cfgPath string, wa WhatsApp, me *whatsapp.Me, host *tools.Host, baseURL string, log *slog.Logger) *Bridge {
 	return &Bridge{
 		cfg: cfg, cfgPath: cfgPath, wa: wa, me: me, host: host, baseURL: baseURL, log: log,
-		dir:      app.AccountDir(user(me.ID)),
-		state:    loadState(filepath.Join(app.AccountDir(user(me.ID)), "state.json")),
-		sessions: map[string]*session{},
-		notes:    newRing[note](5000),
-		last:     map[string]string{},
-		ignored:  map[string]bool{},
+		dir:       app.AccountDir(user(me.ID)),
+		state:     loadState(filepath.Join(app.AccountDir(user(me.ID)), "state.json")),
+		reminders: loadReminders(filepath.Join(app.AccountDir(user(me.ID)), "reminders.json")),
+		sessions:  map[string]*session{},
+		notes:     newRing[note](5000),
+		last:      map[string]string{},
+		ignored:   map[string]bool{},
 	}
 }
 
@@ -110,6 +112,9 @@ func New(cfg *config.Config, cfgPath string, wa WhatsApp, me *whatsapp.Me, host 
 // processes before returning; their conversations resume with the next message after a restart.
 func (b *Bridge) Run(ctx context.Context) error {
 	defer b.stop()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go b.remind(ctx)
 	poll := time.NewTicker(3 * time.Second)
 	defer poll.Stop()
 	modified := modTime(b.cfgPath)
@@ -208,12 +213,17 @@ func (b *Bridge) route(m *whatsapp.Message) {
 		from, _, _ := b.sender(m)
 		b.notes.put(m.ID, note{from: from, text: excerpt(m.Text, 200)})
 	}
+	b.session(chat).deliver(m)
+}
+
+// session returns chat's session, starting it if needed. Called with mu held.
+func (b *Bridge) session(chat *config.Chat) *session {
 	s := b.sessions[chat.JID]
 	if s == nil {
 		s = newSession(b, chat)
 		b.sessions[chat.JID] = s
 	}
-	s.deliver(m)
+	return s
 }
 
 func (b *Bridge) stop() {

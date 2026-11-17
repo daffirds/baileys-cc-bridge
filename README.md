@@ -2,7 +2,7 @@
 
 Bridges whitelisted WhatsApp chats to Claude Code or Codex sessions on your Mac. Every message in a
 whitelisted chat goes to that chat's own agent session, even mid-turn. The agent answers with tools:
-send messages, files and stickers, and react.
+send messages, files and stickers, react, and set reminders.
 
 ```
 WhatsApp ── Baileys (node sidecar) ── bridge (Go) ── claude -p stream-json | codex app-server
@@ -62,6 +62,7 @@ The agent gets an MCP server named `whatsapp`, bound to its chat:
 | `send_sticker` | any image, converted to a 512×512 WebP |
 | `react` | emoji on a message (default: the latest one); empty removes it |
 | `chat_info` | a group's name, description and members (names, numbers, admins), or who a direct chat is with |
+| `set_reminder` · `list_reminders` · `cancel_reminder` | a note the agent gets back in its chat at a set time (`in` 10m, or `at` a local time), as a `<reminder>` block; one due while the bridge was off arrives when it is back |
 
 `chat` can point a tool at another whitelisted chat, never at one outside the list. Incoming
 attachments are saved to `.baileys-cc-bridge/media/` in the agent's folder and the path is given to
@@ -88,10 +89,11 @@ connection would make WhatsApp drop the first.
 
 ```
 ~/.baileys-cc-bridge/<number>/
-  config.yaml   the whitelist
-  state.json    each chat's conversation id
-  names.json    names learned from senders, for prompts and chat_info
-  chats/<chat>/ each chat's default folder
+  config.yaml     the whitelist
+  state.json      each chat's conversation id
+  reminders.json  reminders not yet due
+  names.json      names learned from senders, for prompts and chat_info
+  chats/<chat>/   each chat's default folder
 ```
 
 The bridge's own files for a chat live in `.baileys-cc-bridge/` inside the agent's folder, so a

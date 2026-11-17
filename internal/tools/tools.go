@@ -39,7 +39,9 @@ type Binding struct {
 	Sent func(chat, id, text string)
 	// Footer goes under every text and caption the agent sends, e.g. "Assisted by Claude"; "" for none.
 	Footer string
-	Log    *slog.Logger
+	// Reminders are the chat's: what set_reminder sets comes back to this chat.
+	Reminders Reminders
+	Log       *slog.Logger
 }
 
 // sign puts the footer under text.
@@ -64,6 +66,12 @@ func newServer(b *Binding) *mcp.Server {
 	mcp.AddTool(s, &mcp.Tool{Name: "chat_info",
 		Description: "Who is in the chat: a group's name, description and members (names, numbers, admins), or who a direct chat is with.",
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, b.chatInfo)
+	mcp.AddTool(s, &mcp.Tool{Name: "set_reminder",
+		Description: "Get a note back in this chat later: at that time it arrives here as a <reminder> block, like a message. " +
+			"Give in (from now) or at (local time)."}, b.setReminder)
+	mcp.AddTool(s, &mcp.Tool{Name: "list_reminders", Description: "The reminders set in this chat that haven't come due yet.",
+		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, b.listReminders)
+	mcp.AddTool(s, &mcp.Tool{Name: "cancel_reminder", Description: "Cancel a reminder set in this chat, by id."}, b.cancelReminder)
 	return s
 }
 
