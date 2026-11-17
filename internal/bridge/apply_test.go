@@ -83,10 +83,17 @@ func TestChangedSettingsWaitForTheTurn(t *testing.T) {
 	case <-time.After(300 * time.Millisecond):
 	}
 
+	// The turn ends, but the agent may still be waiting on background work of its own: it keeps
+	// running until a message comes.
 	first.events <- engine.Event{Kind: engine.TurnCompleted}
-	receive(t, first.done) // the turn is over: the old settings go
+	select {
+	case <-first.done:
+		t.Fatal("the agent was stopped while idle, before any message needed the new settings")
+	case <-time.After(300 * time.Millisecond):
+	}
 
 	b.route(msg("M2"))
+	receive(t, first.done) // the old settings go before the message is answered
 	second := receive(t, fake.starts)
 	if second.spec.Model != "gpt-small" {
 		t.Errorf("restarted with model %q, want gpt-small", second.spec.Model)

@@ -130,8 +130,8 @@ func (b *Bridge) reload() {
 }
 
 // apply switches to cfg. Removed chats' agents stop. A chat whose settings changed gets them
-// between turns: its agent finishes what it is doing, and the next message starts it again with
-// the new settings, resuming the same conversation.
+// between turns: its agent is left to finish what it is doing, and the next message that finds it
+// idle starts it again with the new settings, resuming the same conversation.
 func (b *Bridge) apply(cfg *config.Config) {
 	b.mu.Lock()
 	var removed []*session

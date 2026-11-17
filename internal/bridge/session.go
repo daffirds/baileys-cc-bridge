@@ -38,7 +38,7 @@ type session struct {
 	proc    engine.Session
 	mcpPath string
 	busy    bool
-	stale   bool     // proc runs with older settings: replace it once the turn is over
+	stale   bool     // proc runs with older settings: replace it before the next message
 	pending []string // prompts not delivered yet because the CLI failed to start
 }
 
@@ -71,7 +71,7 @@ func (s *session) stop() {
 	<-s.done
 }
 
-// update hands the session new settings; run() applies them between turns.
+// update hands the session new settings; the agent gets them with the next message it is idle for.
 func (s *session) update(c *config.Chat) {
 	s.mu.Lock()
 	s.next = c
@@ -136,6 +136,14 @@ func (s *session) run() {
 			if len(s.pending) == 0 {
 				continue
 			}
+			if s.proc != nil && s.stale && !s.busy {
+				// The settings changed since the agent started: it starts again with them, in the same
+				// conversation. Only now, with a message to answer: an agent that looks idle may still
+				// be waiting on background work of its own.
+				s.log.Info("settings changed; restarting the agent")
+				s.closeProcess()
+				events, exited = nil, nil
+			}
 			if s.proc == nil {
 				if err := s.start(); err != nil {
 					if s.ctx.Err() == nil {
@@ -175,12 +183,6 @@ func (s *session) run() {
 				s.log.Warn("agent process exited", "err", err)
 			}
 			s.release()
-			events, exited = nil, nil
-		}
-		if s.stale && !s.busy {
-			// The next message starts the agent with the new settings, in the same conversation.
-			s.log.Info("settings changed; restarting the agent with the next message")
-			s.closeProcess()
 			events, exited = nil, nil
 		}
 	}
