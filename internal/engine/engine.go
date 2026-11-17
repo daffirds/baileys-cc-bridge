@@ -25,7 +25,6 @@ type Spec struct {
 	MCP          MCPServer
 	AddDirs      []string // extra directories the agent may read and write (claude --add-dir)
 	ResumeID     string   // engine-native session id to resume; "" starts fresh
-	StateDir     string   // private per-session directory for prompt and config files
 	Log          *slog.Logger
 }
 

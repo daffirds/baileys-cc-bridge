@@ -224,7 +224,7 @@ func (s *session) start() error {
 		Binary: bin, Workdir: workdir, Instructions: instructions(s.chat, s.b.me, s.b.ownerName()),
 		Model: a.Model, Effort: a.Effort, Autonomy: a.Autonomy,
 		MCP:     engine.MCPServer{Name: tools.ServerName, URL: s.b.baseURL + s.mcpPath},
-		AddDirs: []string{s.mediaDir()}, ResumeID: resume, StateDir: filepath.Join(s.dir, "engine"),
+		AddDirs: []string{s.mediaDir()}, ResumeID: resume,
 		Log: s.log,
 	}
 	eng := s.b.engines[a.Engine]

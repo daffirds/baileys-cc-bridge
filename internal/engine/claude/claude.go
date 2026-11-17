@@ -25,15 +25,19 @@ import (
 
 type Engine struct{}
 
-func (Engine) Start(_ context.Context, spec engine.Spec) (engine.Session, error) {
-	if err := os.MkdirAll(spec.StateDir, 0o700); err != nil {
+func (Engine) Start(_ context.Context, spec engine.Spec) (_ engine.Session, err error) {
+	// The prompt and the MCP config (its URL is the tool server's secret, so not a command-line
+	// argument) go to files that only live as long as the process.
+	dir, err := os.MkdirTemp("", "bailey-cc-bridge-claude-")
+	if err != nil {
 		return nil, err
 	}
-	promptFile := filepath.Join(spec.StateDir, "claude-system-prompt.md")
-	if err := os.WriteFile(promptFile, []byte(spec.Instructions), 0o600); err != nil {
-		return nil, err
-	}
-	mcpFile := filepath.Join(spec.StateDir, "claude-mcp.json")
+	defer func() {
+		if err != nil {
+			_ = os.RemoveAll(dir)
+		}
+	}()
+	mcpFile := filepath.Join(dir, "mcp.json")
 	mcpCfg, _ := json.MarshalIndent(map[string]any{"mcpServers": map[string]any{
 		spec.MCP.Name: map[string]any{"type": "http", "url": spec.MCP.URL},
 	}}, "", "  ")
@@ -45,6 +49,10 @@ func (Engine) Start(_ context.Context, spec engine.Spec) (engine.Session, error)
 	help := helpText(spec.Binary)
 	args := []string{"-p", "--input-format=stream-json", "--output-format=stream-json", "--verbose"}
 	if strings.Contains(help, "--append-system-prompt-file") {
+		promptFile := filepath.Join(dir, "system-prompt.md")
+		if err := os.WriteFile(promptFile, []byte(spec.Instructions), 0o600); err != nil {
+			return nil, err
+		}
 		args = append(args, "--append-system-prompt-file="+promptFile)
 	} else {
 		args = append(args, "--append-system-prompt="+spec.Instructions)
@@ -117,6 +125,7 @@ func (Engine) Start(_ context.Context, spec engine.Spec) (engine.Session, error)
 		if err := cmd.Wait(); err != nil {
 			s.setErr(fmt.Errorf("claude exited: %w%s", err, s.stderr.Suffix()))
 		}
+		_ = os.RemoveAll(dir)
 		s.mu.Lock()
 		s.closed = true
 		close(s.events)
