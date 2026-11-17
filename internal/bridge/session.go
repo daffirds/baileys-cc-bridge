@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/daffirds/bailey-cc-bridge/internal/config"
@@ -20,25 +21,32 @@ import (
 // message and steers every later message into it.
 type session struct {
 	b      *Bridge
-	chat   *config.Chat
 	dir    string // the chat's own folder, ~/.bailey-cc-bridge/<number>/chats/<chat>
 	log    *slog.Logger
 	inbox  chan *whatsapp.Message
 	ctx    context.Context
 	cancel context.CancelFunc
 	done   chan struct{}
+	given  *config.Chat // the latest settings handed over; guarded by b.mu
+
+	mu   sync.Mutex
+	next *config.Chat  // settings waiting for run() to take them
+	wake chan struct{} // tells run() about next
 
 	// Owned by run().
+	chat    *config.Chat
 	proc    engine.Session
 	mcpPath string
 	busy    bool
+	stale   bool     // proc runs with older settings: replace it once the turn is over
 	pending []string // prompts not delivered yet because the CLI failed to start
 }
 
 func newSession(b *Bridge, chat *config.Chat) *session {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &session{
-		b: b, chat: chat,
+		b: b, chat: chat, given: chat,
+		wake:   make(chan struct{}, 1),
 		dir:    filepath.Join(b.dir, "chats", dirName(chat.JID)),
 		log:    b.log.With("chat", chat.Name),
 		inbox:  make(chan *whatsapp.Message, 256),
@@ -61,6 +69,17 @@ func (s *session) deliver(m *whatsapp.Message) {
 func (s *session) stop() {
 	s.cancel()
 	<-s.done
+}
+
+// update hands the session new settings; run() applies them between turns.
+func (s *session) update(c *config.Chat) {
+	s.mu.Lock()
+	s.next = c
+	s.mu.Unlock()
+	select {
+	case s.wake <- struct{}{}:
+	default:
+	}
 }
 
 // folder is where the agent works: the configured working directory, else the chat's own folder.
@@ -136,6 +155,14 @@ func (s *session) run() {
 				s.log.Warn("could not deliver to the agent", "err", err)
 			}
 
+		case <-s.wake:
+			s.mu.Lock()
+			if s.next != nil {
+				s.chat, s.next = s.next, nil
+				s.stale = s.proc != nil
+			}
+			s.mu.Unlock()
+
 		case ev, ok := <-events:
 			if !ok {
 				events = nil
@@ -148,6 +175,12 @@ func (s *session) run() {
 				s.log.Warn("agent process exited", "err", err)
 			}
 			s.release()
+			events, exited = nil, nil
+		}
+		if s.stale && !s.busy {
+			// The next message starts the agent with the new settings, in the same conversation.
+			s.log.Info("settings changed; restarting the agent with the next message")
+			s.closeProcess()
 			events, exited = nil, nil
 		}
 	}
@@ -265,7 +298,7 @@ func (s *session) closeProcess() {
 
 func (s *session) release() {
 	s.proc = nil
-	s.busy = false
+	s.busy, s.stale = false, false
 	if s.mcpPath != "" {
 		s.b.host.Unregister(s.mcpPath)
 		s.mcpPath = ""

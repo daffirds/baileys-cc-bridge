@@ -119,30 +119,41 @@ func (b *Bridge) Run(ctx context.Context) error {
 	}
 }
 
-// reload applies an edited config.yaml. Sessions of removed chats, and of chats whose settings
-// changed, stop; a changed chat's next message starts its agent again with the new settings,
-// resuming the same conversation.
+// reload applies an edited config.yaml.
 func (b *Bridge) reload() {
 	cfg, err := config.Load(b.cfgPath)
 	if err != nil {
 		b.log.Warn("config.yaml changed but is invalid; keeping the previous config", "err", err)
 		return
 	}
+	b.apply(cfg)
+}
+
+// apply switches to cfg. Removed chats' agents stop. A chat whose settings changed gets them
+// between turns: its agent finishes what it is doing, and the next message starts it again with
+// the new settings, resuming the same conversation.
+func (b *Bridge) apply(cfg *config.Config) {
 	b.mu.Lock()
-	var stale []*session
+	var removed []*session
+	changed := 0
 	for jid, s := range b.sessions {
-		if c := cfg.Chat(jid); c == nil || *c != *s.chat {
-			stale = append(stale, s)
+		switch c := cfg.Chat(jid); {
+		case c == nil:
+			removed = append(removed, s)
 			delete(b.sessions, jid)
+		case *c != *s.given:
+			s.given = c
+			s.update(c)
+			changed++
 		}
 	}
 	b.cfg = cfg
 	b.ignored = map[string]bool{}
 	b.mu.Unlock()
-	for _, s := range stale {
+	for _, s := range removed {
 		go s.stop()
 	}
-	b.log.Info("config reloaded", "chats", len(cfg.Chats), "sessions_restarted", len(stale))
+	b.log.Info("config reloaded", "chats", len(cfg.Chats), "changed", changed, "removed", len(removed))
 }
 
 func modTime(path string) time.Time {

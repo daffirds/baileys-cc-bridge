@@ -35,7 +35,7 @@ so another number can take over. The first connection installs the sidecar's npm
 ## Config
 
 `~/.bailey-cc-bridge/<number>/config.yaml`, edited in the panel or by hand (see [config.example.yaml](config.example.yaml)).
-A running bridge applies changes within seconds.
+A running bridge applies changes within seconds: a chat whose settings changed gets them between turns, so an agent is never cut off mid-task.
 
 | Key | Default | |
 |---|---|---|
