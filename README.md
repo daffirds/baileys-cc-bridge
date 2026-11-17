@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="A WhatsApp group planning a trip. You ask where to find a villa, and Mochi Bot, an AI agent with its own number, answers with three options and a PDF it made, signed Assisted by Claude. Rina thanks it. Next to the chat, the agent as a robot at its computer, reading the chat on its phone." src="assets/banner.svg" width="100%">
+  <img alt="A WhatsApp group planning a trip. Ben says they still need a place to stay, you ask where to find a villa, and Mochi Bot, an AI agent with its own number, answers with three options and a PDF it made, signed Assisted by Claude. Rina thanks it. Next to the chat, the agent as a robot at its computer, reading the chat on its phone." src="assets/banner.svg" width="100%">
 </p>
 
 <p align="center">
@@ -39,10 +39,11 @@ Settings → Linked devices). A spare number works best; your own works too, and
 as you. Pick the chats it is in and choose Claude or Codex for each. In a group it reads along and
 joins in when it can help, no tag needed:
 
-> **You:** hmm, any good villa in Ubud for 4? under 3jt a night<br>
+> **Ben:** we still need a place to stay 😅<br>
+> **You:** hmm, any good villa in Ubud for 4?<br>
 > **Mochi Bot:** Hey! Found 3 with a pool, all free that weekend 🏡 _Assisted by Claude_<br>
 > **Mochi Bot:** 📄 ubud-villas.pdf<br>
-> **Rina:** woah the 2nd one looks amazing 😍 thanks Mochi Bot!
+> **Rina:** woah the 2nd one 😍 thanks Mochi Bot!
 
 ## How it works
 
@@ -50,7 +51,7 @@ joins in when it can help, no tag needed:
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/how-it-works.svg">
     <source media="(prefers-color-scheme: light)" srcset="assets/how-it-works-light.svg">
-    <img alt="Your message in the WhatsApp group is steered into the agent's Claude Code session on your Mac. The agent runs commands there, and its tool calls come back as the chat's next bubbles: send_message as Mochi Bot's answer, send_file as the PDF, and react as the heart on Rina's thanks, after her message is steered in too." src="assets/how-it-works-light.svg" width="100%">
+    <img alt="Every message in the WhatsApp group goes into the agent's Claude Code session on your Mac; it stays quiet on Ben's. On yours it runs commands, and its tool calls come back as the chat's next bubbles: send_message as Mochi Bot's answer, send_file as the PDF, and react as the heart on Rina's thanks." src="assets/how-it-works-light.svg" width="100%">
   </picture>
 </p>
 
