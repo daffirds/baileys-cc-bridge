@@ -9,8 +9,8 @@ WhatsApp ── Baileys (node sidecar) ── bridge (Go) ── claude -p strea
                                          └─ MCP on 127.0.0.1 ← whatsapp tools
 ```
 
-- **One chat, one session.** The CLI process starts on the chat's first message, stops after
-  `idle_timeout`, and resumes the same conversation (`--resume`, `thread/resume`) on the next one.
+- **One chat, one session.** The CLI process starts on the chat's first message and stays up. After
+  a restart, the next message resumes the same conversation (`--resume`, `thread/resume`).
 - **The bridge never speaks.** Everything people see is a tool call the agent made. Its plain text
   goes nowhere.
 - **Off means missed.** Messages that arrive while the bridge is off are not replayed.
@@ -42,10 +42,8 @@ A running bridge applies changes within seconds.
 | `model`, `effort` | CLI default | |
 | `workdir` | `~/.bailey-cc-bridge/chats/<chat>` | where the agent runs; must exist |
 | `prompt` | | appended to the bridge's instructions |
-| `idle_timeout` | `30m` | |
 
-`defaults` sets them for every chat; each entry under `chats` (`jid`, `name`) can override any of them.
-A `jid` is a group (`…@g.us`), a person (`…@s.whatsapp.net`, or just a phone number with country
+Each entry under `chats` has a `jid`, a `name` and any of these. A `jid` is a group (`…@g.us`), a person (`…@s.whatsapp.net`, or just a phone number with country
 code) or yourself ("Message yourself"). `chats` prints yours.
 
 ## Tools

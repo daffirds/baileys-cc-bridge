@@ -64,7 +64,7 @@ func TestAgentRoundTrip(t *testing.T) {
 	defer srv.Close()
 
 	me := &whatsapp.Me{ID: "628880000000@s.whatsapp.net", Name: "Owner"}
-	agent := config.Agent{Engine: engineName, Autonomy: config.AutonomyAuto, IdleTimeout: config.Duration(time.Minute)}
+	agent := config.Agent{Engine: engineName, Autonomy: config.AutonomyAuto}
 	if engineName == config.EngineClaude {
 		agent.Model = "haiku"
 	}

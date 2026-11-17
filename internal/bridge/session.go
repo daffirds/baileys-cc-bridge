@@ -18,7 +18,7 @@ import (
 )
 
 // session is one chat's agent. Its goroutine (run) owns the CLI process: it starts it on the first
-// message, steers every later message into it and stops it after the idle timeout.
+// message and steers every later message into it.
 type session struct {
 	b      *Bridge
 	chat   *config.Chat
@@ -100,8 +100,6 @@ func exists(path string) bool {
 
 func (s *session) run() {
 	defer close(s.done)
-	idle := time.NewTimer(time.Hour)
-	idle.Stop()
 	var (
 		events <-chan engine.Event
 		exited <-chan struct{}
@@ -132,7 +130,6 @@ func (s *session) run() {
 				}
 				events, exited = s.proc.Events(), s.proc.Done()
 			}
-			idle.Stop()
 			s.busy = true
 			prompt := strings.Join(s.pending, "\n\n")
 			s.pending = nil
@@ -145,7 +142,7 @@ func (s *session) run() {
 				events = nil
 				continue
 			}
-			s.onEvent(ev, idle)
+			s.onEvent(ev)
 
 		case <-exited:
 			if err := s.proc.Err(); err != nil {
@@ -153,14 +150,6 @@ func (s *session) run() {
 			}
 			s.release()
 			events, exited = nil, nil
-			idle.Stop()
-
-		case <-idle.C:
-			if s.proc != nil && !s.busy {
-				s.log.Info("idle; stopping the agent process (the next message resumes it)")
-				s.closeProcess()
-				events, exited = nil, nil
-			}
 		}
 	}
 }
@@ -205,17 +194,15 @@ func (s *session) collect(m *whatsapp.Message) []*whatsapp.Message {
 	}
 }
 
-func (s *session) onEvent(ev engine.Event, idle *time.Timer) {
+func (s *session) onEvent(ev engine.Event) {
 	switch ev.Kind {
 	case engine.TurnStarted:
 		s.busy = true
-		idle.Stop()
 	case engine.TurnCompleted:
 		s.busy = false
 		if ev.Error != "" {
 			s.log.Warn("turn failed", "err", ev.Error)
 		}
-		idle.Reset(s.chat.IdleTimeout.Std())
 	case engine.ToolCall:
 		s.log.Info("tool call", "call", excerpt(ev.Text, 160))
 	case engine.AssistantText:

@@ -1,17 +1,15 @@
-// Package config loads the bridge's YAML config: defaults for every chat's agent, and the
-// whitelist of chats, each of which may override those defaults.
+// Package config loads the bridge's YAML config: the whitelist of chats and how each chat's agent
+// runs.
 package config
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"go.yaml.in/yaml/v3"
 
@@ -31,31 +29,23 @@ const (
 	AutonomyReadOnly = "readonly" // read-only; anything that would prompt is denied
 )
 
-// DefaultIdleTimeout is how long a chat's CLI process stays up without activity.
-const DefaultIdleTimeout = 30 * time.Minute
-
 // Path is where the config lives.
 func Path() string { return filepath.Join(app.Home(), "config.yaml") }
 
 type Config struct {
-	Defaults Agent  `yaml:"defaults" json:"defaults"`
-	Chats    []Chat `yaml:"chats" json:"chats"`
+	Chats []Chat `yaml:"chats" json:"chats"`
 }
 
-// Agent says how a chat's agent runs. After Load, every chat's Agent is complete: fields it
-// leaves empty are filled in from the defaults.
+// Agent says how a chat's agent runs. After Load, Engine and Autonomy are always set.
 type Agent struct {
-	Engine   string `yaml:"engine,omitempty" json:"engine,omitempty"`     // claude | codex
+	Engine   string `yaml:"engine,omitempty" json:"engine,omitempty"`     // claude (default) | codex
 	Model    string `yaml:"model,omitempty" json:"model,omitempty"`       // "" = the CLI's own default
 	Effort   string `yaml:"effort,omitempty" json:"effort,omitempty"`     // reasoning effort; "" = the model's default
-	Autonomy string `yaml:"autonomy,omitempty" json:"autonomy,omitempty"` // auto | full | readonly
-	// Workdir is where the agent runs. "" = the chat's own directory under ~/.bailey-cc-bridge/chats.
+	Autonomy string `yaml:"autonomy,omitempty" json:"autonomy,omitempty"` // auto (default) | full | readonly
+	// Workdir is where the agent runs. "" = the chat's own folder under ~/.bailey-cc-bridge/chats.
 	Workdir string `yaml:"workdir,omitempty" json:"workdir,omitempty"`
-	// Prompt is appended to the bridge's instructions. A chat's prompt replaces the default one.
+	// Prompt is appended to the bridge's instructions.
 	Prompt string `yaml:"prompt,omitempty" json:"prompt,omitempty"`
-	// IdleTimeout stops the chat's CLI process after this long without activity. The
-	// conversation is kept and resumed on the next message.
-	IdleTimeout Duration `yaml:"idle_timeout,omitempty" json:"idle_timeout,omitempty"`
 }
 
 // Chat is one whitelisted chat: a person (…@s.whatsapp.net), a group (…@g.us) or yourself.
@@ -68,7 +58,7 @@ type Chat struct {
 // IsGroup reports whether the chat is a group.
 func (c *Chat) IsGroup() bool { return strings.HasSuffix(c.JID, "@g.us") }
 
-// Load reads and validates the config at path, filling every chat's settings in from the defaults.
+// Load reads and validates the config at path, filling in each chat's engine and autonomy.
 func Load(path string) (*Config, error) {
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("no config at %s: create it with `%s ui` (or see config.example.yaml)", path, app.Name)
@@ -83,8 +73,8 @@ func Load(path string) (*Config, error) {
 	return c, nil
 }
 
-// Read parses the config at path as written, for editing: defaults are not filled in. A missing
-// file reads as an empty config.
+// Read parses the config at path as written, for editing: empty fields stay empty. A missing file
+// reads as an empty config.
 func Read(path string) (*Config, error) {
 	b, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -110,7 +100,7 @@ func parse(b []byte) (*Config, error) {
 	return &c, nil
 }
 
-// Save validates c and writes it to path as given (defaults are not filled in). Comments in an
+// Save validates c and writes it to path as given (empty fields stay empty). Comments in an
 // existing file are not kept.
 func Save(path string, c *Config) error {
 	var buf bytes.Buffer
@@ -138,19 +128,6 @@ func Save(path string, c *Config) error {
 }
 
 func (c *Config) normalize() error {
-	d := &c.Defaults
-	if d.Engine == "" {
-		d.Engine = EngineClaude
-	}
-	if d.Autonomy == "" {
-		d.Autonomy = AutonomyAuto
-	}
-	if d.IdleTimeout == 0 {
-		d.IdleTimeout = Duration(DefaultIdleTimeout)
-	}
-	if err := d.validate(); err != nil {
-		return fmt.Errorf("defaults: %w", err)
-	}
 	seen := map[string]bool{}
 	for i := range c.Chats {
 		ch := &c.Chats[i]
@@ -166,35 +143,17 @@ func (c *Config) normalize() error {
 		if ch.Name == "" {
 			ch.Name, _, _ = strings.Cut(jid, "@")
 		}
-		ch.Agent = merge(*d, ch.Agent)
+		if ch.Engine == "" {
+			ch.Engine = EngineClaude
+		}
+		if ch.Autonomy == "" {
+			ch.Autonomy = AutonomyAuto
+		}
 		if err := ch.Agent.validate(); err != nil {
 			return fmt.Errorf("chat %s: %w", ch.Name, err)
 		}
 	}
 	return nil
-}
-
-// merge fills the empty fields of o from d.
-func merge(d, o Agent) Agent {
-	pick := func(v, def string) string {
-		if v != "" {
-			return v
-		}
-		return def
-	}
-	a := Agent{
-		Engine:      pick(o.Engine, d.Engine),
-		Model:       pick(o.Model, d.Model),
-		Effort:      pick(o.Effort, d.Effort),
-		Autonomy:    pick(o.Autonomy, d.Autonomy),
-		Workdir:     pick(o.Workdir, d.Workdir),
-		Prompt:      pick(o.Prompt, d.Prompt),
-		IdleTimeout: o.IdleTimeout,
-	}
-	if a.IdleTimeout == 0 {
-		a.IdleTimeout = d.IdleTimeout
-	}
-	return a
 }
 
 func (a *Agent) validate() error {
@@ -266,56 +225,3 @@ func ExpandHome(p string) (string, error) {
 	}
 	return filepath.Abs(p)
 }
-
-// Duration is a time.Duration written as "30m" or "2h" in YAML and JSON.
-type Duration time.Duration
-
-func (d Duration) Std() time.Duration { return time.Duration(d) }
-
-// String drops the zero units Go adds: 30m, 1h, 1h30m, 45s.
-func (d Duration) String() string {
-	s := time.Duration(d).String()
-	if strings.HasSuffix(s, "m0s") {
-		s = s[:len(s)-2]
-	}
-	if strings.HasSuffix(s, "h0m") {
-		s = s[:len(s)-2]
-	}
-	return s
-}
-
-func (d *Duration) set(s string) error {
-	v, err := time.ParseDuration(s)
-	if err != nil {
-		return fmt.Errorf("bad duration %q (use e.g. 30m or 2h)", s)
-	}
-	if v < 0 {
-		return fmt.Errorf("bad duration %q: negative", s)
-	}
-	*d = Duration(v)
-	return nil
-}
-
-func (d *Duration) UnmarshalYAML(n *yaml.Node) error {
-	var s string
-	if err := n.Decode(&s); err != nil {
-		return err
-	}
-	return d.set(s)
-}
-
-func (d Duration) MarshalYAML() (any, error) { return d.String(), nil }
-
-func (d *Duration) UnmarshalJSON(b []byte) error {
-	var s string
-	if err := json.Unmarshal(b, &s); err != nil {
-		return err
-	}
-	if s == "" {
-		*d = 0
-		return nil
-	}
-	return d.set(s)
-}
-
-func (d Duration) MarshalJSON() ([]byte, error) { return json.Marshal(d.String()) }

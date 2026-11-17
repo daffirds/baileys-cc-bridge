@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// state remembers each chat's engine conversation, so it resumes after an idle stop or a restart.
+// state remembers each chat's engine conversation, so it resumes after a restart.
 type state struct {
 	path string
 
