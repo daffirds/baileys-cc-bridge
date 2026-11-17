@@ -18,6 +18,9 @@ export type Group = { jid: string; name: string; size: number };
 
 export type Person = { jid: string; name?: string };
 
+// A model an engine's CLI offers; the first one, id "", is the CLI's own default.
+export type Model = { id: string; name: string; description?: string; efforts?: string[]; default_effort?: string };
+
 export type Status = {
   state: 'starting' | 'linking' | 'connected' | 'logging_out';
   me?: { id: string; lid?: string; name?: string };
@@ -53,6 +56,7 @@ export const api = {
   groups: () => call<{ groups: Group[] }>('GET', '/api/groups'),
   people: () => call<{ people: Person[] }>('GET', '/api/people'),
   logout: () => call<{ ok: boolean }>('POST', '/api/logout'),
+  models: (engine: string) => call<{ models: Model[] }>('GET', `/api/models?engine=${encodeURIComponent(engine)}`),
   pickDir: (start: string) => call<{ path: string }>('POST', '/api/pick-dir', { start }),
   checkDir: (path: string) => call<{ ok: boolean; path: string; error?: string }>('POST', '/api/check-dir', { path }),
 };

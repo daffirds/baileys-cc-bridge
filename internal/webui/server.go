@@ -55,6 +55,7 @@ type server struct {
 	token   string
 	account Account
 	log     *slog.Logger
+	models  modelCache
 }
 
 // LinkFile holds the running panel's link, for `bailey-cc-bridge ui`.
@@ -87,6 +88,7 @@ func Start(ctx context.Context, o Options) (string, error) {
 	mux.HandleFunc("PUT /api/config", s.saveConfig)
 	mux.HandleFunc("GET /api/groups", s.groups)
 	mux.HandleFunc("GET /api/people", s.people)
+	mux.HandleFunc("GET /api/models", s.listModels)
 	mux.HandleFunc("POST /api/logout", s.logout)
 	mux.HandleFunc("POST /api/pick-dir", s.pickDir)
 	mux.HandleFunc("POST /api/check-dir", s.checkDir)

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { api, type Agent, type Chat, type Config, type Group, type Person, type State, type Status } from './api';
+import { api, type Agent, type Chat, type Config, type Group, type Model, type Person, type State, type Status } from './api';
 
 const ENGINES = ['claude', 'codex'];
 const AUTONOMY: Record<string, string> = {
@@ -13,6 +13,30 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 // Drops empty fields so the saved YAML only holds what was set.
 function clean<T extends object>(o: T): T {
   return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== '' && v !== undefined)) as T;
+}
+
+// Each engine's models, asked once per page load and shared by every card.
+const modelLists = new Map<string, Promise<Model[]>>();
+
+function useModels(engine: string): { models: Model[] | null; error: string } {
+  const [got, setGot] = useState<{ engine: string; models: Model[] | null; error: string }>({ engine, models: null, error: '' });
+  useEffect(() => {
+    let list = modelLists.get(engine);
+    if (!list) {
+      list = api.models(engine).then((r) => r.models);
+      list.catch(() => modelLists.delete(engine)); // ask again next time
+      modelLists.set(engine, list);
+    }
+    let alive = true;
+    list.then(
+      (models) => alive && setGot({ engine, models, error: '' }),
+      (e) => alive && setGot({ engine, models: null, error: message(e) }),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [engine]);
+  return got.engine === engine ? got : { models: null, error: '' };
 }
 
 // Mirrors the Go side: the directory name a chat's files live under.
@@ -256,10 +280,12 @@ function AgentFields<T extends Agent>({ value, onChange, defaultDir, prompt = tr
   prompt?: boolean; // show the system prompt
 }) {
   const set = (patch: Partial<Agent>) => onChange(clean({ ...value, ...patch }));
+  const engine = value.engine || 'claude';
   return (
     <div className="grid">
       <Field label="Engine">
-        <select value={value.engine || 'claude'} onChange={(e) => set({ engine: e.target.value })}>
+        {/* Models and efforts differ per engine, so switching starts from the new one's defaults. */}
+        <select value={engine} onChange={(e) => set({ engine: e.target.value, model: '', effort: '' })}>
           {ENGINES.map((e) => (
             <option key={e} value={e}>
               {e}
@@ -276,12 +302,7 @@ function AgentFields<T extends Agent>({ value, onChange, defaultDir, prompt = tr
           ))}
         </select>
       </Field>
-      <Field label="Model">
-        <input value={value.model ?? ''} placeholder="CLI default" onChange={(e) => set({ model: e.target.value })} />
-      </Field>
-      <Field label="Effort">
-        <input value={value.effort ?? ''} placeholder="model default" onChange={(e) => set({ effort: e.target.value })} />
-      </Field>
+      <ModelFields engine={engine} model={value.model ?? ''} effort={value.effort ?? ''} onChange={set} />
       <Field label="Working directory" wide>
         <DirInput value={value.workdir ?? ''} placeholder={defaultDir} onChange={(workdir) => set({ workdir })} />
       </Field>
@@ -296,6 +317,65 @@ function AgentFields<T extends Agent>({ value, onChange, defaultDir, prompt = tr
         </Field>
       )}
     </div>
+  );
+}
+
+// ModelFields picks a model and an effort from what the engine's CLI offers.
+function ModelFields({ engine, model, effort, onChange }: {
+  engine: string;
+  model: string;
+  effort: string;
+  onChange: (patch: Partial<Agent>) => void;
+}) {
+  const { models, error } = useModels(engine);
+  const chosen = models?.find((m) => m.id === model) ?? models?.[0];
+  const efforts = chosen?.efforts ?? [];
+  const setModel = (id: string) => {
+    const next = models?.find((m) => m.id === id);
+    // Keep the effort only if the new model takes it.
+    onChange({ model: id, effort: next?.efforts?.includes(effort) ? effort : '' });
+  };
+  if (!models) {
+    return (
+      <>
+        <Field label="Model">
+          <select disabled value="">
+            <option value="">{error ? 'could not list models' : 'Loading…'}</option>
+          </select>
+        </Field>
+        <Field label="Effort">
+          <select disabled value="">
+            <option value="">{error ? '' : 'Loading…'}</option>
+          </select>
+        </Field>
+        {error && <span className="error small wide-cell">{error}</span>}
+      </>
+    );
+  }
+  return (
+    <>
+      <Field label="Model">
+        <select value={model} title={chosen?.description} onChange={(e) => setModel(e.target.value)}>
+          {models.map((m) => (
+            <option key={m.id} value={m.id} title={m.description}>
+              {m.name}
+            </option>
+          ))}
+          {model && !models.some((m) => m.id === model) && <option value={model}>{model} (not offered)</option>}
+        </select>
+      </Field>
+      <Field label="Effort">
+        <select value={effort} disabled={efforts.length === 0 && !effort} onChange={(e) => onChange({ effort: e.target.value })}>
+          <option value="">{chosen?.default_effort ? `Model default (${chosen.default_effort})` : 'Model default'}</option>
+          {efforts.map((e) => (
+            <option key={e} value={e}>
+              {e}
+            </option>
+          ))}
+          {effort && !efforts.includes(effort) && <option value={effort}>{effort} (not offered)</option>}
+        </select>
+      </Field>
+    </>
   );
 }
 
