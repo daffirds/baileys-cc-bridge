@@ -13,17 +13,15 @@
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-25d366"></a>
 </p>
 
-Link a WhatsApp number to baileys-cc-bridge and the number becomes an agent. Message it directly, or
-add it to a group like any other member. Behind it runs Claude Code or Codex on your Mac, so it does
-more than talk: it runs commands, reads and writes files, builds things, and sends the results back
-as messages, files and stickers.
+Message the number directly, or add it to a group like any other member. It has your Mac to work on,
+so it can run commands, read and write files and build things, then send back the result as a
+message or a file.
 
-It speaks only through tools. Its thinking, the commands it runs and their output stay on the Mac;
-the chat sees only what the agent chooses to send or do: a message, a file, a reaction. No logs, no
-"thinking…", no wall of output.
+The chat only sees what the agent decides to send: a message, a file, a reaction. Its thinking, the
+commands it runs and their output stay on your Mac.
 
-Every chat has its own session that remembers the conversation, and a message that comes in while
-the agent is working joins the task in progress, so you can steer it halfway.
+Each chat has its own session, so the agent remembers the conversation. If you message it while it
+is working, it reads that too, so you can change course halfway.
 
 ## Get started
 
