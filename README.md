@@ -12,43 +12,9 @@
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-25d366"></a>
 </p>
 
-Message the number directly, or add it to a group like any other member. It has your Mac to work on,
-so it can run commands, read and write files and build things, then send back the result as a
-message or a file.
-
-The chat only sees what the agent decides to send: a message, a file, a reaction. Its thinking, the
-commands it runs and their output stay on your Mac.
-
-Each chat has its own session, so the agent remembers the conversation. If you message it while it
-is working, it reads that too, so you can change course halfway.
-
-## Get started
-
-You need macOS, Node 22.18+, and Claude Code and/or Codex installed and logged in.
-
-```sh
-npm install -g baileys-cc-bridge
-baileys-cc-bridge install        # runs in the background from now on, and opens its panel
-```
-
-The panel shows a QR code. Scan it from the phone whose number the agent will use (WhatsApp →
-Settings → Linked devices). A spare number works best. Your own works too, but then the agent writes
-as you.
-
-Then pick the chats it listens to; it ignores every other chat. Each one gets its own engine, model,
-folder and prompt.
-
-Before you add a group: anyone in it can ask the agent to do things on your Mac. Keep groups on
-`auto` or `readonly` ([Settings](#settings)), and use `full` only where you trust everyone.
-
-In a group it reads along and joins in when it can help, no tag needed, as in the picture at the
-top. In a direct chat every message is for it, and the chat's folder can be a project of yours:
-
-> **You:** run the tests and tell me what fails<br>
-> **Mochi Bot:** 2 of 148 fail, both in `auth_test.go`. The token expiry check ignores timezones 🕐 _Assisted by Claude_<br>
-> **You:** fix it and send me the diff<br>
-> **Mochi Bot:** 📄 token-expiry.diff<br>
-> **Mochi Bot:** all green now ✅ _Assisted by Claude_
+A small daemon for your Mac, written in Go. It links a WhatsApp number to the Mac the way WhatsApp Web
+does, through [Baileys](https://github.com/WhiskeySockets/Baileys), and gives each chat you pick its own
+Claude Code or Codex session.
 
 ## How it works
 
@@ -70,6 +36,38 @@ top. In a direct chat every message is for it, and the chat's folder can be a pr
 - The CLIs use their own logins, so the work counts against your Claude or ChatGPT plan. The bridge
   talks only to WhatsApp and `127.0.0.1`.
 
+## Get started
+
+You need macOS, Node 22.18+, and Claude Code and/or Codex installed and logged in.
+
+```sh
+npm install -g baileys-cc-bridge
+baileys-cc-bridge install        # runs in the background from now on, and opens its panel
+```
+
+The panel shows a QR code. Scan it from the phone whose number the agent will use (WhatsApp →
+Settings → Linked devices). A spare number works best. Your own works too, but then the agent writes
+as you.
+
+Then pick the chats it listens to; it ignores every other chat. Each one gets its own engine, model,
+folder and prompt.
+
+<p align="center">
+  <img alt="The panel: the linked account, Mochi Bot, with Claude and Codex both ready, and three conversations. The open one, a group, shows its engine, permissions, model, effort, footer, folder and system prompt." src="assets/panel.png" width="760">
+</p>
+
+Before you add a group: anyone in it can ask the agent to do things on your Mac. Keep groups on
+`auto` or `readonly` ([Settings](#settings)), and use `full` only where you trust everyone.
+
+In a group it reads along and joins in when it can help, no tag needed, as in the picture at the
+top. In a direct chat every message is for it, and the chat's folder can be a project of yours:
+
+> **You:** run the tests and tell me what fails<br>
+> **Mochi Bot:** 2 of 148 fail, both in `auth_test.go`. The token expiry check ignores timezones 🕐 _Assisted by Claude_<br>
+> **You:** fix it and send me the diff<br>
+> **Mochi Bot:** 📄 token-expiry.diff<br>
+> **Mochi Bot:** all green now ✅ _Assisted by Claude_
+
 ## Tools
 
 | Tool | |
@@ -89,10 +87,6 @@ and the agent gets the path.
 
 The panel edits `~/.baileys-cc-bridge/<number>/config.yaml` ([example](config.example.yaml)). A change
 applies from the chat's next message, after the agent has finished what it was doing.
-
-<p align="center">
-  <img alt="The panel: the linked account, Mochi Bot, with Claude and Codex both ready, and three conversations. The open one, a group, shows its engine, permissions, model, effort, footer, folder and system prompt." src="assets/panel.png" width="760">
-</p>
 
 | Key | Default | |
 |---|---|---|
