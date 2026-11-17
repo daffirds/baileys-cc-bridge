@@ -63,10 +63,10 @@ In a group it reads along and joins in when it can help, no tag needed, as in th
 top. In a direct chat every message is for it, and the chat's folder can be a project of yours:
 
 > **You:** run the tests and tell me what fails<br>
-> **Mochi Bot:** 2 of 148 fail, both in `auth_test.go`. The token expiry check ignores timezones 🕐 _Assisted by Claude_<br>
+> **Mochi Bot (_Assisted by Claude_):** 2 of 148 fail, both in `auth_test.go`. The token expiry check ignores timezones 🕐<br>
 > **You:** fix it and send me the diff<br>
-> **Mochi Bot:** 📄 token-expiry.diff<br>
-> **Mochi Bot:** all green now ✅ _Assisted by Claude_
+> **Mochi Bot (_Assisted by Claude_):** 📄 token-expiry.diff<br>
+> **Mochi Bot (_Assisted by Claude_):** all green now ✅ 
 
 ## Tools
 
