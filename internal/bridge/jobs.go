@@ -195,9 +195,11 @@ func (b *Bridge) runJobs(ctx context.Context) {
 	t := time.NewTimer(time.Hour)
 	defer t.Stop()
 	for {
-		wait := time.Hour
+		// Timers stop counting while the Mac sleeps, so the clock is checked again at least every
+		// minute: a job that came due during sleep runs within a minute of waking.
+		wait := time.Minute
 		if at, ok := b.jobs.next(); ok {
-			wait = max(time.Until(at), 0)
+			wait = min(max(time.Until(at), 0), time.Minute)
 		}
 		t.Reset(wait)
 		select {
