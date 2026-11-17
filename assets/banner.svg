@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="440" viewBox="0 0 1280 440" role="img" aria-labelledby="t d">
+  <title id="t">baileys-cc-bridge</title>
+  <desc id="d">On the left, a WhatsApp group: a friend asks who is checking flights, the answer comes from your account signed Assisted by Claude, another friend asks for a reminder, and on Thursday the reminder arrives. On the right, the Claude Code session on your Mac that the chat runs in: the messages coming in, the tool calls going out, and the scheduled job it set coming back. In the middle, baileys-cc-bridge carrying messages in, tool calls out, and jobs back when they are due.</desc>
+  <defs>
+    <linearGradient id="in" gradientUnits="userSpaceOnUse" x1="516" y1="0" x2="764" y2="0"><stop offset="0" stop-color="#25d366"/><stop offset="1" stop-color="#d97757"/></linearGradient>
+    <linearGradient id="out" gradientUnits="userSpaceOnUse" x1="764" y1="0" x2="516" y2="0"><stop offset="0" stop-color="#d97757"/><stop offset="1" stop-color="#25d366"/></linearGradient>
+    <linearGradient id="band" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#25d366" stop-opacity="0.16"/><stop offset="1" stop-color="#d97757" stop-opacity="0.16"/></linearGradient>
+  </defs>
+  <rect x="1" y="1" width="1278" height="438" rx="24" fill="#0b141a" stroke="#233138" stroke-width="2"/>
+
+  <text x="48" y="46" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="13" letter-spacing="2" fill="#8696a0">A CHAT ON WHATSAPP</text>
+  <text x="1232" y="46" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="13" letter-spacing="2" fill="#8696a0">THE AGENT ON YOUR MAC</text>
+
+  <g>
+    <rect x="48" y="64" width="468" height="308" rx="14" fill="#111b21" stroke="#233138" stroke-width="1.5"/>
+    <circle cx="86" cy="86" r="16" fill="#00a884" fill-opacity="0.25"/>
+    <text x="86" y="92" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17">🌴</text>
+    <text x="112" y="83" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#e9edef">Bali trip</text>
+    <text x="112" y="101" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" fill="#8696a0">Rina, Ben, You</text>
+    <line x1="48" y1="110" x2="516" y2="110" stroke="#233138" stroke-width="1.5"/>
+    <rect x="64" y="118" width="318" height="46" rx="10" fill="#202c33"/>
+    <text x="76" y="135" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#fc9775">Rina</text>
+    <text x="76" y="154" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" fill="#e9edef">who's checking flights for friday? ✈️</text>
+    <text x="372" y="157" text-anchor="end" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" fill="#8696a0">09:12</text>
+    <rect x="178" y="172" width="322" height="54" rx="10" fill="#005c4b"/>
+    <text x="190" y="192" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" fill="#e9edef">Cheapest: GA 404, Fri 07:40, Rp 1.2jt</text>
+    <text x="190" y="214" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-style="italic" fill="#9cc6bb">🤖 Assisted by Claude</text>
+    <text x="490" y="219" text-anchor="end" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11"><tspan fill="#9cc6bb">09:13</tspan><tspan dx="4" fill="#53bdeb">✓✓</tspan></text>
+    <rect x="64" y="234" width="318" height="46" rx="10" fill="#202c33"/>
+    <text x="76" y="251" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#53bdeb">Ben</text>
+    <text x="76" y="270" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" fill="#e9edef">nice. remind us to check in thursday</text>
+    <text x="372" y="273" text-anchor="end" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" fill="#8696a0">09:14</text>
+    <rect x="258" y="288" width="242" height="28" rx="10" fill="#005c4b"/>
+    <text x="270" y="308" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" fill="#e9edef">Done: Thursday 18:00 ⏰</text>
+    <text x="490" y="309" text-anchor="end" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11"><tspan fill="#9cc6bb">09:14</tspan><tspan dx="4" fill="#53bdeb">✓✓</tspan></text>
+    <rect x="188" y="332" width="312" height="28" rx="10" fill="#005c4b"/>
+    <text x="200" y="352" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" fill="#e9edef">Check-in is open, everyone 🛫</text>
+    <text x="490" y="353" text-anchor="end" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11"><tspan fill="#9cc6bb">Thu 18:00</tspan><tspan dx="4" fill="#53bdeb">✓✓</tspan></text>
+  </g>
+
+  <g>
+    <rect x="764" y="64" width="468" height="308" rx="14" fill="#111b21" stroke="#233138" stroke-width="1.5"/>
+    <circle cx="790" cy="87" r="6" fill="#2a3942"/>
+    <circle cx="808" cy="87" r="6" fill="#2a3942"/>
+    <circle cx="826" cy="87" r="6" fill="#2a3942"/>
+    <text x="848" y="92" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="13" fill="#8696a0">claude -p --input-format=stream-json</text>
+    <line x1="764" y1="110" x2="1232" y2="110" stroke="#233138" stroke-width="1.5"/>
+    <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="13.5">
+    <text x="786" y="140"><tspan fill="#25d366" font-weight="700">→</tspan><tspan dx="9" fill="#e9edef" font-weight="700">Rina</tspan><tspan dx="8" fill="#e9edef">who's checking flights…</tspan></text>
+    <text x="786" y="164" fill="#8696a0"><tspan dx="18">⚙</tspan><tspan dx="9" fill="#d97757">Bash</tspan><tspan dx="9">curl -s flights.example/fri</tspan></text>
+    <text x="786" y="188" fill="#8696a0"><tspan dx="18">⚙</tspan><tspan dx="9" fill="#d97757">send_message</tspan><tspan dx="9">&quot;Cheapest: GA 404…&quot;</tspan></text>
+    <text x="786" y="256"><tspan fill="#25d366" font-weight="700">→</tspan><tspan dx="9" fill="#e9edef" font-weight="700">Ben</tspan><tspan dx="8" fill="#e9edef">remind us to check in…</tspan></text>
+    <text x="786" y="280" fill="#8696a0"><tspan dx="18">⚙</tspan><tspan dx="9" fill="#d97757">schedule_job</tspan><tspan dx="9">at &quot;2026-11-19 18:00&quot;</tspan></text>
+    <text x="786" y="304" fill="#8696a0"><tspan dx="18">⚙</tspan><tspan dx="9" fill="#d97757">send_message</tspan><tspan dx="9">&quot;Done: Thursday 18:00 ⏰&quot;</tspan></text>
+    <text x="786" y="350"><tspan fill="#d97757" font-weight="700">⏰</tspan><tspan dx="8" fill="#e9edef" font-weight="700">Thu 18:00</tspan><tspan dx="8" fill="#e9edef">&lt;scheduled_job&gt; check-in</tspan></text>
+    </g>
+  </g>
+
+  <rect x="49" y="326" width="1182" height="40" fill="url(#band)"/>
+
+  <rect x="582" y="76" width="116" height="296" rx="58" fill="#0b141a" stroke="#e9edef" stroke-width="2.5"/>
+  <g transform="translate(640,116)" fill="none" stroke="#e9edef" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-23 6 H23"/>
+    <path d="M-18 6 Q0 -16 18 6"/>
+    <path d="M-9 6 V-1 M0 6 V-4 M9 6 V-1 M-14 6 V14 M14 6 V14"/>
+  </g>
+  <line x1="516" y1="162" x2="760" y2="162" stroke="url(#in)" stroke-width="2.5"/>
+  <path d="M762,162 l-11,-6 v12 z" fill="#d97757"/>
+  <text x="640" y="182" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="13" letter-spacing="1" fill="#8696a0">messages</text>
+  <line x1="764" y1="232" x2="520" y2="232" stroke="url(#out)" stroke-width="2.5"/>
+  <path d="M518,232 l11,-6 v12 z" fill="#25d366"/>
+  <text x="640" y="252" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="13" letter-spacing="1" fill="#8696a0">tools</text>
+  <line x1="668" y1="346" x2="760" y2="346" stroke="#d97757" stroke-width="2.5"/>
+  <path d="M762,346 l-11,-6 v12 z" fill="#d97757"/>
+  <text x="658" y="351" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="13" letter-spacing="1" fill="#8696a0">jobs</text>
+
+  <text x="640" y="414" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="30" font-weight="700" letter-spacing="12" fill="#e9edef">BAILEYS-CC-BRIDGE</text>
+</svg>
