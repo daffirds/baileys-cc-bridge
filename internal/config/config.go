@@ -47,7 +47,7 @@ type Agent struct {
 	// SystemPrompt is what the chat's agent is told after the bridge's own fixed instructions; ""
 	// uses the default for groups or direct chats.
 	SystemPrompt string `yaml:"system_prompt,omitempty" json:"system_prompt,omitempty"`
-	// Footer puts "Assisted by Claude" (or Codex) under what the agent sends. On unless false.
+	// Footer puts "🤖 Assisted by Claude" (or Codex) under what the agent sends. On unless false.
 	Footer *bool `yaml:"footer,omitempty" json:"footer,omitempty"`
 }
 

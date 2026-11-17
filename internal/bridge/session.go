@@ -318,9 +318,9 @@ func footer(c *config.Chat) string {
 	case !c.FooterOn():
 		return ""
 	case c.Engine == config.EngineCodex:
-		return "Assisted by Codex"
+		return "🤖 Assisted by Codex"
 	}
-	return "Assisted by Claude"
+	return "🤖 Assisted by Claude"
 }
 
 // dirName turns a JID into a directory name: 6281234567890@s.whatsapp.net → 6281234567890_s.whatsapp.net.

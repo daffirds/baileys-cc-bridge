@@ -46,7 +46,7 @@ A running bridge applies changes within seconds. A chat whose settings changed g
 | `model`, `effort` | CLI default | |
 | `workdir` | `~/.baileys-cc-bridge/<number>/chats/<chat>` | where the agent runs; must exist |
 | `system_prompt` | one for groups, one for direct chats | what the agent is told after the bridge's own fixed instructions (how it reaches WhatsApp) |
-| `footer` | `true` | puts _Assisted by Claude_ (or _Codex_) under every message and caption the agent sends |
+| `footer` | `true` | puts _🤖 Assisted by Claude_ (or _Codex_) under every message and caption the agent sends |
 
 Each entry under `chats` has a `jid`, a `name` and any of these. A `jid` is a group (`…@g.us`), a person (`…@s.whatsapp.net`, or just a phone number with country
 code) or yourself ("Message yourself"). `chats` prints yours.

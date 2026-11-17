@@ -12,7 +12,7 @@ chats:
   - jid: 120363012345678901@g.us
     name: Project group
     engine: codex
-    footer: false                          # no "Assisted by Codex" under its messages (on by default)
+    footer: false                          # no "🤖 Assisted by Codex" under its messages (on by default)
     workdir: ~/Projects/Personal/scratch   # default: ~/.baileys-cc-bridge/<number>/chats/<chat>
     # system_prompt follows the bridge's own fixed instructions; groups and direct chats each have
     # a default (the panel shows them).

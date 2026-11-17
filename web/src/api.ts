@@ -8,7 +8,7 @@ export type Agent = {
   autonomy?: string;
   workdir?: string;
   system_prompt?: string;
-  footer?: boolean; // "Assisted by …" under what the agent sends; on unless false
+  footer?: boolean; // "🤖 Assisted by …" under what the agent sends; on unless false
 };
 
 export type Chat = Agent & { jid: string; name?: string };
