@@ -71,6 +71,8 @@ type Engine interface {
 	// Models asks the CLI at binary which models it offers. The first one, with ID "", is the
 	// CLI's own default.
 	Models(ctx context.Context, binary string) ([]Model, error)
+	// SignedIn reports whether the CLI at binary is logged in, as its sessions would run.
+	SignedIn(ctx context.Context, binary string) (bool, error)
 }
 
 // Model is a model a CLI offers.

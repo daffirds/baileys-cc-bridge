@@ -58,17 +58,39 @@ type note struct {
 
 var engines = map[string]engine.Engine{config.EngineClaude: claude.Engine{}, config.EngineCodex: codex.Engine{}}
 
-// Models lists the models the named engine's CLI offers, its default first (ID "").
-func Models(ctx context.Context, name string) ([]engine.Model, error) {
+// ErrNoCLI means an engine's CLI isn't installed where the bridge looks for it.
+var ErrNoCLI = errors.New("CLI not found")
+
+// cli returns the named engine and where its CLI is.
+func cli(name string) (engine.Engine, string, error) {
 	e, ok := engines[name]
 	if !ok {
-		return nil, fmt.Errorf("unknown engine %q", name)
+		return nil, "", fmt.Errorf("unknown engine %q", name)
 	}
 	bin, err := engine.Find(name)
 	if err != nil {
-		return nil, fmt.Errorf("%s CLI not found", name)
+		return nil, "", fmt.Errorf("%s %w", name, ErrNoCLI)
+	}
+	return e, bin, nil
+}
+
+// Models lists the models the named engine's CLI offers, its default first (ID "").
+func Models(ctx context.Context, name string) ([]engine.Model, error) {
+	e, bin, err := cli(name)
+	if err != nil {
+		return nil, err
 	}
 	return e.Models(ctx, bin)
+}
+
+// SignedIn reports whether the named engine's CLI is logged in. It fails with ErrNoCLI when the CLI
+// isn't installed.
+func SignedIn(ctx context.Context, name string) (bool, error) {
+	e, bin, err := cli(name)
+	if err != nil {
+		return false, err
+	}
+	return e.SignedIn(ctx, bin)
 }
 
 // New makes a bridge for cfg, which was loaded from cfgPath; Run reloads it when the file changes.
