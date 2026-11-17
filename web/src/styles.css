@@ -411,3 +411,18 @@ button.choice:hover {
 .badge.custom {
   background: color-mix(in srgb, var(--warn) 25%, transparent);
 }
+
+.save {
+  margin-right: 4px;
+  font-size: 12.5px;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.save.saved {
+  color: var(--accent);
+}
+
+.save.failed {
+  color: var(--danger);
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api, type Agent, type Chat, type Config, type Group, type Model, type Person, type State, type Status } from './api';
 
 const ENGINES = ['claude', 'codex'];
@@ -122,15 +122,70 @@ function Linking({ status }: { status: Status }) {
   );
 }
 
+// useAutosave saves the config a moment after it stops changing. Saves run one at a time, each with
+// the latest config, so the file always ends up with what the page shows.
+function useAutosave(config: Config | null, initial: string | null) {
+  const latest = useRef(config);
+  latest.current = config;
+  const saved = useRef(initial);
+  const running = useRef(false);
+  const [phase, setPhase] = useState<'saved' | 'pending' | 'saving' | 'failed'>('saved');
+  const [error, setError] = useState('');
+  if (saved.current === null && initial !== null) saved.current = initial;
+
+  const flush = useCallback(async () => {
+    if (running.current) return; // the running loop takes the latest config itself
+    running.current = true;
+    try {
+      for (;;) {
+        const c = latest.current;
+        const json = JSON.stringify(c);
+        if (!c || json === saved.current) break;
+        setPhase('saving');
+        try {
+          await api.save(c);
+          saved.current = json;
+          setError('');
+        } catch (e) {
+          setError(message(e));
+          setPhase('failed');
+          return; // the next change tries again
+        }
+      }
+      setPhase('saved');
+    } finally {
+      running.current = false;
+    }
+  }, []);
+
+  const json = JSON.stringify(config);
+  const dirty = config !== null && saved.current !== null && json !== saved.current;
+  useEffect(() => {
+    if (!dirty) return;
+    setPhase((p) => (p === 'saving' ? p : 'pending'));
+    const t = setTimeout(flush, 700);
+    return () => clearTimeout(t);
+  }, [json, dirty, flush]);
+
+  // Leaving with a change not saved yet asks first.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
+
+  return { phase: dirty && phase === 'saved' ? 'pending' : phase, error };
+}
+
 function Panel({ status }: { status: Status }) {
   const [state, setState] = useState<State | null>(null);
   const [config, setConfig] = useState<Config | null>(null);
-  const [saved, setSaved] = useState('');
+  const [initial, setInitial] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
-  const [busy, setBusy] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [removing, setRemoving] = useState<Chat | null>(null);
 
   useEffect(() => {
     api.state().then(
@@ -138,29 +193,15 @@ function Panel({ status }: { status: Status }) {
         const c = { chats: s.config.chats ?? [] };
         setState(s);
         setConfig(c);
-        setSaved(JSON.stringify(c));
+        setInitial(JSON.stringify(c));
       },
       (e) => setError(message(e)),
     );
   }, []);
+  const save = useAutosave(config, initial);
 
   const me = status.me?.id ?? '';
   const who = status.me?.name ? `${status.me.name} · +${status.number}` : `+${status.number}`;
-  const dirty = config !== null && JSON.stringify(config) !== saved;
-  const save = async () => {
-    if (!config) return;
-    setBusy(true);
-    setError('');
-    try {
-      await api.save(config);
-      setSaved(JSON.stringify(config));
-      setNotice('Saved. The bridge picks it up within a few seconds.');
-    } catch (e) {
-      setError(message(e));
-    } finally {
-      setBusy(false);
-    }
-  };
   const setChat = (i: number, c: Chat) => config && setConfig({ chats: config.chats.map((x, j) => (j === i ? c : x)) });
 
   return (
@@ -179,20 +220,43 @@ function Panel({ status }: { status: Status }) {
           </p>
         </div>
         <div className="row">
+          {config && (
+            <span className={`save ${save.phase}`} title="The bridge applies changes between turns.">
+              {{ saved: 'All changes saved', pending: 'Unsaved…', saving: 'Saving…', failed: 'Not saved' }[save.phase]}
+            </span>
+          )}
           <button type="button" className="ghost danger" onClick={() => setLeaving(true)}>
             Log out
           </button>
-          <button type="button" disabled={!config} onClick={() => setAdding(true)}>
+          <button type="button" className="primary" disabled={!config} onClick={() => setAdding(true)}>
             + Add chat
-          </button>
-          <button className="primary" disabled={!dirty || busy} onClick={save}>
-            {busy ? 'Saving…' : dirty ? 'Save' : 'Saved'}
           </button>
         </div>
       </header>
       {error && <p className="error">{error}</p>}
-      {notice && !dirty && <p className="notice">{notice}</p>}
+      {save.error && <p className="error">Could not save: {save.error}</p>}
       {leaving && <LogoutModal who={who} onClose={() => setLeaving(false)} />}
+      {removing && config && (
+        <Modal title={`Remove ${removing.name || removing.jid}?`} onClose={() => setRemoving(null)}>
+          <p>Its agent stops and its messages are ignored from now on.</p>
+          <p className="muted">Its conversation is kept: add the chat again and the agent picks up where it left off.</p>
+          <div className="row end">
+            <button type="button" onClick={() => setRemoving(null)}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="primary danger-fill"
+              onClick={() => {
+                setConfig({ chats: config.chats.filter((c) => c.jid !== removing.jid) });
+                setRemoving(null);
+              }}
+            >
+              Remove
+            </button>
+          </div>
+        </Modal>
+      )}
       {adding && state && config && (
         <AddChatModal
           me={me}
@@ -220,7 +284,7 @@ function Panel({ status }: { status: Status }) {
               state={state}
               defaultDir={`${state.chats_dir}/${dirName(c.jid)}`}
               onChange={(c) => setChat(i, c)}
-              onRemove={() => setConfig({ chats: config.chats.filter((_, j) => j !== i) })}
+              onRemove={() => setRemoving(c)}
             />
           ))}
         </>
