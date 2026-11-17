@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { api, type Agent, type Chat, type Config, type Group, type State, type Status } from './api';
+import { api, type Agent, type Chat, type Config, type Group, type Person, type State, type Status } from './api';
 
 const ENGINES = ['claude', 'codex'];
 const AUTONOMY: Record<string, string> = {
@@ -91,6 +91,7 @@ function Panel({ status }: { status: Status }) {
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [adding, setAdding] = useState(false);
 
   useEffect(() => {
     api.state().then(
@@ -142,6 +143,9 @@ function Panel({ status }: { status: Status }) {
           <button type="button" className="ghost danger" onClick={() => setLeaving(true)}>
             Log out
           </button>
+          <button type="button" disabled={!config} onClick={() => setAdding(true)}>
+            + Add chat
+          </button>
           <button className="primary" disabled={!dirty || busy} onClick={save}>
             {busy ? 'Saving…' : dirty ? 'Save' : 'Saved'}
           </button>
@@ -150,11 +154,25 @@ function Panel({ status }: { status: Status }) {
       {error && <p className="error">{error}</p>}
       {notice && !dirty && <p className="notice">{notice}</p>}
       {leaving && <LogoutModal who={who} onClose={() => setLeaving(false)} />}
+      {adding && state && config && (
+        <AddChatModal
+          me={me}
+          existing={config.chats}
+          chatsDir={state.chats_dir}
+          onAdd={(c) => setConfig({ chats: [...config.chats, c] })}
+          onClose={() => setAdding(false)}
+        />
+      )}
 
       {state && config && (
         <>
           <h2 className="section">Chats</h2>
           <p className="muted">Every message in these chats goes to that chat’s own agent session. Everything else is ignored.</p>
+          {config.chats.length === 0 && (
+            <section className="card center muted">
+              No chats yet. Add one with <b>+ Add chat</b>.
+            </section>
+          )}
           {config.chats.map((c, i) => (
             <ChatCard
               key={c.jid}
@@ -165,7 +183,6 @@ function Panel({ status }: { status: Status }) {
               onRemove={() => setConfig({ chats: config.chats.filter((_, j) => j !== i) })}
             />
           ))}
-          <AddChat me={me} existing={config.chats} onAdd={(c) => setConfig({ chats: [...config.chats, c] })} />
         </>
       )}
     </main>
@@ -207,7 +224,7 @@ function LogoutModal({ who, onClose }: { who: string; onClose: () => void }) {
   );
 }
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+function Modal({ title, wide, onClose, children }: { title: string; wide?: boolean; onClose: () => void; children: ReactNode }) {
   useEffect(() => {
     const key = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', key);
@@ -215,7 +232,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   }, [onClose]);
   return (
     <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal" role="dialog" aria-modal="true" aria-label={title}>
+      <div className={wide ? 'modal wide' : 'modal'} role="dialog" aria-modal="true" aria-label={title}>
         <h2>{title}</h2>
         {children}
       </div>
@@ -232,7 +249,12 @@ function Field({ label, wide, children }: { label: string; wide?: boolean; child
   );
 }
 
-function AgentFields<T extends Agent>({ value, onChange, defaultDir }: { value: T; onChange: (v: T) => void; defaultDir: string }) {
+function AgentFields<T extends Agent>({ value, onChange, defaultDir, prompt = true }: {
+  value: T;
+  onChange: (v: T) => void;
+  defaultDir: string;
+  prompt?: boolean; // show the system prompt
+}) {
   const set = (patch: Partial<Agent>) => onChange(clean({ ...value, ...patch }));
   return (
     <div className="grid">
@@ -263,14 +285,16 @@ function AgentFields<T extends Agent>({ value, onChange, defaultDir }: { value: 
       <Field label="Working directory" wide>
         <DirInput value={value.workdir ?? ''} placeholder={defaultDir} onChange={(workdir) => set({ workdir })} />
       </Field>
-      <Field label="System prompt" wide>
-        <textarea
-          rows={3}
-          value={value.system_prompt ?? ''}
-          placeholder="the built-in one"
-          onChange={(e) => set({ system_prompt: e.target.value })}
-        />
-      </Field>
+      {prompt && (
+        <Field label="System prompt" wide>
+          <textarea
+            rows={3}
+            value={value.system_prompt ?? ''}
+            placeholder="the built-in one"
+            onChange={(e) => set({ system_prompt: e.target.value })}
+          />
+        </Field>
+      )}
     </div>
   );
 }
@@ -339,72 +363,165 @@ function ChatCard({ chat, me, defaultDir, onChange, onRemove }: {
   );
 }
 
-function AddChat({ me, existing, onAdd }: { me: string; existing: Chat[]; onAdd: (c: Chat) => void }) {
+// AddChatModal adds a chat in three steps: group or direct message, which one, then its agent.
+function AddChatModal({ me, existing, chatsDir, onAdd, onClose }: {
+  me: string;
+  existing: Chat[];
+  chatsDir: string;
+  onAdd: (c: Chat) => void;
+  onClose: () => void;
+}) {
+  const [step, setStep] = useState<'kind' | 'group' | 'person' | 'agent'>('kind');
+  const [from, setFrom] = useState<'group' | 'person'>('group');
+  const [chat, setChat] = useState<Chat | null>(null);
+  const have = useMemo(() => new Set(existing.map((c) => c.jid)), [existing]);
+  const pick = (c: Chat) => {
+    setChat(c);
+    setStep('agent');
+  };
+  const go = (kind: 'group' | 'person') => {
+    setFrom(kind);
+    setStep(kind);
+  };
+  return (
+    <Modal title={chat && step === 'agent' ? `Add ${chat.name}` : 'Add a chat'} wide={step === 'agent'} onClose={onClose}>
+      {step === 'kind' && (
+        <div className="choices">
+          <button type="button" className="choice" onClick={() => go('group')}>
+            <b>Group</b>
+            <span className="muted">a group this number is in</span>
+          </button>
+          <button type="button" className="choice" onClick={() => go('person')}>
+            <b>Direct message</b>
+            <span className="muted">a person, or your own “Message yourself” chat</span>
+          </button>
+        </div>
+      )}
+      {step === 'group' && <GroupPicker have={have} onPick={pick} onBack={() => setStep('kind')} />}
+      {step === 'person' && <PersonPicker me={me} have={have} onPick={pick} onBack={() => setStep('kind')} />}
+      {step === 'agent' && chat && (
+        <>
+          <div className="grid">
+            <Field label="Name" wide>
+              <input value={chat.name ?? ''} onChange={(e) => setChat({ ...chat, name: e.target.value })} />
+            </Field>
+          </div>
+          <AgentFields value={chat} prompt={false} defaultDir={`${chatsDir}/${dirName(chat.jid)}`} onChange={setChat} />
+          <p className="muted small">The system prompt can be changed on the chat’s card afterwards.</p>
+          <div className="row end">
+            <button type="button" onClick={() => setStep(from)}>
+              Back
+            </button>
+            <button
+              type="button"
+              className="primary"
+              onClick={() => {
+                onAdd(chat);
+                onClose();
+              }}
+            >
+              Add chat
+            </button>
+          </div>
+        </>
+      )}
+    </Modal>
+  );
+}
+
+function GroupPicker({ have, onPick, onBack }: { have: Set<string>; onPick: (c: Chat) => void; onBack: () => void }) {
   const [q, setQ] = useState('');
   const [groups, setGroups] = useState<Group[] | null>(null);
-  const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  const have = useMemo(() => new Set(existing.map((c) => c.jid)), [existing]);
-  const needle = q.trim().toLowerCase();
-  const digits = q.replace(/[\s+\-().]/g, '');
-  const number = /^\d{7,15}$/.test(digits) ? digits : '';
-  const matches = useMemo(
-    () => (groups ?? []).filter((g) => !have.has(g.jid) && g.name.toLowerCase().includes(needle)).slice(0, 8),
-    [groups, have, needle],
-  );
-  const load = async () => {
-    setBusy(true);
+  const load = () => {
     setErr('');
-    try {
-      setGroups((await api.groups()).groups);
-    } catch (e) {
-      setErr(message(e));
-    } finally {
-      setBusy(false);
-    }
+    api.groups().then(
+      (r) => setGroups(r.groups),
+      (e) => setErr(message(e)),
+    );
   };
-  useEffect(() => {
-    load();
-  }, []);
-  const add = (c: Chat) => {
-    onAdd(c);
-    setQ('');
-  };
-  const showMe = me && !have.has(me) && (!needle || 'you message yourself me'.includes(needle));
+  useEffect(load, []);
+  const needle = q.trim().toLowerCase();
+  const list = (groups ?? []).filter((g) => !have.has(g.jid) && g.name.toLowerCase().includes(needle));
   return (
-    <section className="card add">
-      <h3>Add a chat</h3>
-      <input value={q} placeholder="Search your groups, or type a phone number with country code" onChange={(e) => setQ(e.target.value)} />
-      <ul className="options">
-        {showMe && (
-          <li>
-            <button type="button" onClick={() => add({ jid: me, name: 'Me' })}>
-              You <span className="muted">your “Message yourself” chat</span>
-            </button>
-          </li>
-        )}
-        {number && !have.has(`${number}@s.whatsapp.net`) && (
-          <li>
-            <button type="button" onClick={() => add({ jid: `${number}@s.whatsapp.net`, name: `+${number}` })}>
-              +{number} <span className="muted">a person</span>
-            </button>
-          </li>
-        )}
-        {matches.map((g) => (
+    <>
+      <input autoFocus value={q} placeholder="Search your groups" onChange={(e) => setQ(e.target.value)} />
+      <ul className="options scroll">
+        {list.slice(0, 100).map((g) => (
           <li key={g.jid}>
-            <button type="button" onClick={() => add({ jid: g.jid, name: g.name })}>
-              {g.name} <span className="muted">{g.size} members</span>
+            <button type="button" onClick={() => onPick({ jid: g.jid, name: g.name })}>
+              {g.name} <span className="muted">{g.size === 1 ? '1 member' : `${g.size} members`}</span>
             </button>
           </li>
         ))}
       </ul>
-      <p className="muted small">
-        {groups ? `${groups.length} groups` : 'Loading groups…'} ·{' '}
-        <button type="button" className="link" disabled={busy} onClick={load}>
-          {busy ? 'Refreshing…' : 'Refresh'}
-        </button>
-      </p>
+      {!groups && !err && <p className="muted small">Loading your groups…</p>}
+      {groups && list.length === 0 && <p className="muted small">No group matches.</p>}
       {err && <p className="error small">{err}</p>}
-    </section>
+      <div className="row between">
+        <button type="button" onClick={onBack}>
+          Back
+        </button>
+        <button type="button" className="link" onClick={load}>
+          Refresh
+        </button>
+      </div>
+    </>
+  );
+}
+
+function PersonPicker({ me, have, onPick, onBack }: { me: string; have: Set<string>; onPick: (c: Chat) => void; onBack: () => void }) {
+  const [q, setQ] = useState('');
+  const [people, setPeople] = useState<Person[] | null>(null);
+  useEffect(() => {
+    api.people().then(
+      (r) => setPeople(r.people),
+      () => setPeople([]),
+    );
+  }, []);
+  const needle = q.trim().toLowerCase();
+  const digits = q.replace(/[\s+\-().]/g, '');
+  const number = /^\d{7,15}$/.test(digits) ? digits : '';
+  const list = (people ?? []).filter(
+    (p) => !have.has(p.jid) && ((p.name ?? '').toLowerCase().includes(needle) || (/^\d+$/.test(digits) && p.jid.startsWith(digits))),
+  );
+  const typed = number && !have.has(`${number}@s.whatsapp.net`) && !list.some((p) => p.jid === `${number}@s.whatsapp.net`);
+  const showMe = me && !have.has(me) && (!needle || 'you me message yourself'.includes(needle));
+  return (
+    <>
+      <input autoFocus value={q} placeholder="Search by name, or type a phone number with country code" onChange={(e) => setQ(e.target.value)} />
+      <ul className="options scroll">
+        {showMe && (
+          <li>
+            <button type="button" onClick={() => onPick({ jid: me, name: 'Me' })}>
+              You <span className="muted">your “Message yourself” chat</span>
+            </button>
+          </li>
+        )}
+        {typed && (
+          <li>
+            <button type="button" onClick={() => onPick({ jid: `${number}@s.whatsapp.net`, name: `+${number}` })}>
+              +{number} <span className="muted">this number</span>
+            </button>
+          </li>
+        )}
+        {list.slice(0, 100).map((p) => (
+          <li key={p.jid}>
+            <button type="button" onClick={() => onPick({ jid: p.jid, name: p.name || `+${p.jid.split('@')[0]}` })}>
+              {p.name} <span className="muted">+{p.jid.split('@')[0]}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {!people && <p className="muted small">Loading…</p>}
+      {people && people.length === 0 && !number && (
+        <p className="muted small">No names known yet: type the number. Names show up here once people write in a chat.</p>
+      )}
+      <div className="row between">
+        <button type="button" onClick={onBack}>
+          Back
+        </button>
+      </div>
+    </>
   );
 }
