@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { api, type Agent, type Chat, type Config, type Group, type Model, type Person, type State, type Status } from './api';
 import { Icon } from './icons';
 
@@ -55,6 +55,39 @@ function fillPrompt(prompt: string, chat: Chat, a: Account) {
     '{chat_jid}': chat.jid,
   };
   return prompt.replace(/\{(owner|number|chat_kind|chat_jid|chat)\}/g, (m) => values[m] ?? m);
+}
+
+const isGroup = (jid: string) => jid.endsWith('@g.us');
+
+// Avatar stands in for a chat's picture: a group icon, a person's initials, or you.
+function Avatar({ chat, me }: { chat: Chat; me: string }) {
+  const you = chat.jid === me;
+  const initials = (chat.name ?? '')
+    .split(/\s+/)
+    .filter((w) => /^\p{L}/u.test(w))
+    .slice(0, 2)
+    .map((w) => w[0].toUpperCase())
+    .join('');
+  let hue = 0;
+  for (const c of chat.jid) hue = (hue * 31 + c.charCodeAt(0)) % 360;
+  return (
+    <span className={you ? 'avatar you' : 'avatar'} style={{ '--h': hue } as CSSProperties} aria-hidden="true">
+      {isGroup(chat.jid) ? <Icon name="group" size={20} /> : you || !initials ? <Icon name="user" size={20} /> : initials}
+    </span>
+  );
+}
+
+// Who names a chat, with its JID in small print under the name.
+function Who({ chat, me }: { chat: Chat; me: string }) {
+  return (
+    <>
+      <Avatar chat={chat} me={me} />
+      <div className="who">
+        <span className="title">{chat.name || chat.jid.split('@')[0]}</span>
+        <span className="jid">{chat.jid}</span>
+      </div>
+    </>
+  );
 }
 
 // Mirrors the Go side: the directory name a chat's files live under.
@@ -368,11 +401,18 @@ function Field({ label, wide, children }: { label: string; wide?: boolean; child
   );
 }
 
-function AgentFields<T extends Agent>({ value, onChange, defaultDir }: { value: T; onChange: (v: T) => void; defaultDir: string }) {
-  const set = (patch: Partial<Agent>) => onChange(clean({ ...value, ...patch }));
+// AgentFields edits how a chat's agent runs. A direct chat can be renamed; a group keeps the
+// name it has on WhatsApp.
+function AgentFields({ value, onChange, defaultDir }: { value: Chat; onChange: (c: Chat) => void; defaultDir: string }) {
+  const set = (patch: Partial<Chat>) => onChange(clean({ ...value, ...patch }));
   const engine = value.engine || 'claude';
   return (
     <div className="grid">
+      {!isGroup(value.jid) && (
+        <Field label="Name">
+          <input value={value.name ?? ''} onChange={(e) => onChange({ ...value, name: e.target.value })} />
+        </Field>
+      )}
       <Field label="Engine">
         {/* Models and efforts differ per engine, so switching starts from the new one's defaults. */}
         <select value={engine} onChange={(e) => set({ engine: e.target.value, model: '', effort: '' })}>
@@ -560,13 +600,10 @@ function ChatCard({ chat, account, state, defaultDir, onChange, onRemove }: {
   onChange: (c: Chat) => void;
   onRemove: () => void;
 }) {
-  const kind = chat.jid.endsWith('@g.us') ? 'group' : chat.jid === account.me ? 'you' : 'person';
   return (
     <section className="card">
       <div className="row head">
-        <input className="name" value={chat.name ?? ''} placeholder="name" onChange={(e) => onChange({ ...chat, name: e.target.value })} />
-        <span className={`badge ${kind}`}>{kind}</span>
-        <code className="muted jid">{chat.jid}</code>
+        <Who chat={chat} me={account.me} />
         <button type="button" className="ghost danger" onClick={onRemove}>
           Remove
         </button>
@@ -598,7 +635,7 @@ function AddChatModal({ me, existing, chatsDir, onAdd, onClose }: {
     setStep(kind);
   };
   return (
-    <Modal title={chat && step === 'agent' ? `Add ${chat.name}` : 'New conversation'} wide={step === 'agent'} onClose={onClose}>
+    <Modal title="New conversation" wide={step === 'agent'} onClose={onClose}>
       {step === 'kind' && (
         <div className="choices">
           <button type="button" className="choice" onClick={() => go('group')}>
@@ -615,10 +652,8 @@ function AddChatModal({ me, existing, chatsDir, onAdd, onClose }: {
       {step === 'person' && <PersonPicker me={me} have={have} onPick={pick} onBack={() => setStep('kind')} />}
       {step === 'agent' && chat && (
         <>
-          <div className="grid">
-            <Field label="Name" wide>
-              <input value={chat.name ?? ''} onChange={(e) => setChat({ ...chat, name: e.target.value })} />
-            </Field>
+          <div className="row head">
+            <Who chat={chat} me={me} />
           </div>
           <AgentFields value={chat} defaultDir={`${chatsDir}/${dirName(chat.jid)}`} onChange={setChat} />
           <p className="muted small">The system prompt can be changed on the conversation’s card afterwards.</p>
