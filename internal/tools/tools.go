@@ -68,7 +68,7 @@ func newServer(b *Binding) *mcp.Server {
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, b.chatInfo)
 	mcp.AddTool(s, &mcp.Tool{Name: "schedule_job",
 		Description: "Get a task back in this chat later (a reminder, a check-in, a summary): when due it arrives here as a " +
-			"<scheduled_job> block, like a message. Give in (from now) or at (local time)."}, b.scheduleJob)
+			"<scheduled_job> block, like a message. Give in or at for once, cron to repeat; cancel_job stops a repeating one."}, b.scheduleJob)
 	mcp.AddTool(s, &mcp.Tool{Name: "list_jobs", Description: "The jobs scheduled in this chat that haven't come due yet.",
 		Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, b.listJobs)
 	mcp.AddTool(s, &mcp.Tool{Name: "cancel_job", Description: "Cancel a job scheduled in this chat, by id."}, b.cancelJob)

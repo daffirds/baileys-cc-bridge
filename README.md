@@ -62,7 +62,7 @@ The agent gets an MCP server named `whatsapp`, bound to its chat:
 | `send_sticker` | any image, converted to a 512×512 WebP |
 | `react` | emoji on a message (default: the latest one); empty removes it |
 | `chat_info` | a group's name, description and members (names, numbers, admins), or who a direct chat is with |
-| `schedule_job` · `list_jobs` · `cancel_job` | a task the agent gets back in its chat at a set time (`in` 10m, or `at` a local time), as a `<scheduled_job>` block: a reminder, a check-in, a summary. One due while the bridge was off arrives when it is back |
+| `schedule_job` · `list_jobs` · `cancel_job` | a task the agent gets back in its chat as a `<scheduled_job>` block: once (`in` 10m, or `at` a local time) or repeatedly (`cron` such as `0 8 * * 1-5`, local time). A reminder, a check-in, a daily summary. One due while the bridge was off arrives when it is back, once |
 
 `chat` can point a tool at another whitelisted chat, never at one outside the list. Incoming
 attachments are saved to `.baileys-cc-bridge/media/` in the agent's folder and the path is given to

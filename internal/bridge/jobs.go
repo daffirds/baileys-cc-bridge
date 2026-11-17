@@ -6,18 +6,23 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/robfig/cron/v3"
 
 	"github.com/daffirds/baileys-cc-bridge/internal/tools"
 	"github.com/daffirds/baileys-cc-bridge/internal/whatsapp"
 )
 
 // jobs keeps the jobs agents schedule (jobs.json) and hands each back to its chat when it comes
-// due. One that came due while the bridge was off arrives as soon as it is back, late.
+// due. One that came due while the bridge was off arrives as soon as it is back, late; a repeating
+// one then carries on from its next time, so missed runs don't pile up.
 type jobs struct {
 	path    string
 	changed chan struct{} // the next one due may have changed
@@ -29,8 +34,18 @@ type jobs struct {
 type job struct {
 	ID   string    `json:"id"`
 	Chat string    `json:"chat"`
-	At   time.Time `json:"at"`
+	At   time.Time `json:"at"`             // when it is next due
+	Cron string    `json:"cron,omitempty"` // its schedule, if it repeats
 	Task string    `json:"task"`
+}
+
+// nextRun is when a job on the cron schedule spec is next due after t; zero if never.
+func nextRun(spec string, t time.Time) (time.Time, error) {
+	sched, err := cron.ParseStandard(spec)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return sched.Next(t), nil
 }
 
 func loadJobs(path string) *jobs {
@@ -41,17 +56,28 @@ func loadJobs(path string) *jobs {
 	return j
 }
 
-func (j *jobs) add(chat string, at time.Time, task string) (job, error) {
+// add schedules task at a time, or on the cron schedule spec.
+func (j *jobs) add(chat string, at time.Time, spec, task string) (job, error) {
 	now := time.Now()
+	if spec != "" {
+		next, err := nextRun(spec, now)
+		if err != nil {
+			return job{}, fmt.Errorf("cron: %w", err)
+		}
+		if next.IsZero() {
+			return job{}, errors.New("cron: that schedule never comes")
+		}
+		at = next
+	}
 	switch {
 	case !at.After(now):
 		return job{}, errors.New("that time has passed")
-	case at.After(now.AddDate(1, 0, 0)):
+	case spec == "" && at.After(now.AddDate(1, 0, 0)):
 		return job{}, errors.New("that is more than a year away")
 	}
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	jb := job{ID: j.newID(), Chat: chat, At: at, Task: task}
+	jb := job{ID: j.newID(), Chat: chat, At: at, Cron: spec, Task: task}
 	j.list = append(j.list, jb)
 	if err := j.save(); err != nil {
 		j.list = j.list[:len(j.list)-1]
@@ -101,7 +127,8 @@ func (j *jobs) next() (time.Time, bool) {
 	return at, !at.IsZero()
 }
 
-// take removes and returns the jobs due by now.
+// take returns the jobs due by now. One-off jobs leave the list; repeating ones move on to their
+// next time after now.
 func (j *jobs) take(now time.Time) []job {
 	j.mu.Lock()
 	defer j.mu.Unlock()
@@ -113,6 +140,15 @@ func (j *jobs) take(now time.Time) []job {
 		due = append(due, jb)
 		return true
 	})
+	for _, jb := range due {
+		if jb.Cron == "" {
+			continue
+		}
+		if next, err := nextRun(jb.Cron, now); err == nil && !next.IsZero() {
+			jb.At = next
+			j.list = append(j.list, jb)
+		}
+	}
 	if len(due) > 0 {
 		_ = j.save()
 	}
@@ -176,7 +212,8 @@ func (b *Bridge) runJobs(ctx context.Context) {
 	}
 }
 
-// deliverJob gives a due job to its chat's agent the way a message comes in.
+// deliverJob gives a due job to its chat's agent the way a message comes in: a <scheduled_job>
+// block with the task.
 func (b *Bridge) deliverJob(jb job) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -186,7 +223,15 @@ func (b *Bridge) deliverJob(jb job) {
 		return
 	}
 	b.log.Info("job due", "chat", chat.Name, "id", jb.ID)
-	b.session(chat).deliver(&whatsapp.Message{ID: jb.ID, Chat: chat.JID, Kind: "scheduled_job", Text: jb.Task, Timestamp: jb.At.Unix()})
+	attrs := []string{attr("id", jb.ID), attr("due", jb.At.Format("2006-01-02 15:04"))}
+	if jb.Cron != "" {
+		attrs = append(attrs, attr("cron", jb.Cron))
+	}
+	if time.Since(jb.At) > time.Minute {
+		attrs = append(attrs, `late="true"`)
+	}
+	block := "<scheduled_job " + strings.Join(attrs, " ") + ">\n" + jb.Task + "\n</scheduled_job>"
+	b.session(chat).deliver(&whatsapp.Message{ID: jb.ID, Chat: chat.JID, Kind: "scheduled_job", Text: block, Timestamp: time.Now().Unix()})
 }
 
 // chatJobs is one chat's jobs, as its tools see them.
@@ -195,15 +240,15 @@ type chatJobs struct {
 	chat string
 }
 
-func (c chatJobs) Add(at time.Time, task string) (tools.Job, error) {
-	jb, err := c.j.add(c.chat, at, task)
-	return tools.Job{ID: jb.ID, At: jb.At, Task: jb.Task}, err
+func (c chatJobs) Add(at time.Time, spec, task string) (tools.Job, error) {
+	jb, err := c.j.add(c.chat, at, spec, task)
+	return tools.Job{ID: jb.ID, At: jb.At, Cron: jb.Cron, Task: jb.Task}, err
 }
 
 func (c chatJobs) List() []tools.Job {
 	var out []tools.Job
 	for _, jb := range c.j.of(c.chat) {
-		out = append(out, tools.Job{ID: jb.ID, At: jb.At, Task: jb.Task})
+		out = append(out, tools.Job{ID: jb.ID, At: jb.At, Cron: jb.Cron, Task: jb.Task})
 	}
 	return out
 }
