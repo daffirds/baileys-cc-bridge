@@ -13,7 +13,7 @@
 </p>
 
 A small daemon for your Mac, written in Go. It links a WhatsApp number to the Mac the way WhatsApp Web
-does, through [Baileys](https://github.com/WhiskeySockets/Baileys), and gives each chat you pick its own
+does, through [Baileys](https://github.com/WhiskeySockets/Baileys), and gives each WhatsApp chat you pick its own
 Claude Code or Codex session.
 
 ## How it works
