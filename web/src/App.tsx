@@ -223,7 +223,7 @@ function Panel({ status }: { status: Status }) {
             Log out
           </button>
           <button type="button" className="primary" disabled={!config} onClick={() => setAdding(true)}>
-            + Add chat
+            + New conversation
           </button>
         </div>
       </header>
@@ -233,7 +233,7 @@ function Panel({ status }: { status: Status }) {
       {removing && config && (
         <Modal title={`Remove ${removing.name || removing.jid}?`} onClose={() => setRemoving(null)}>
           <p>Its agent stops and its messages are ignored from now on.</p>
-          <p className="muted">Its conversation is kept: add the chat again and the agent picks up where it left off.</p>
+          <p className="muted">Its history is kept: add it again and the agent picks up where it left off.</p>
           <div className="row end">
             <button type="button" onClick={() => setRemoving(null)}>
               Cancel
@@ -263,11 +263,11 @@ function Panel({ status }: { status: Status }) {
 
       {state && config && (
         <>
-          <h2 className="section">Chats</h2>
-          <p className="muted">Every message in these chats goes to that chat’s own agent session. Everything else is ignored.</p>
+          <h2 className="section">Conversations</h2>
+          <p className="muted">Each conversation has its own agent. Messages anywhere else are ignored.</p>
           {config.chats.length === 0 && (
             <section className="card center muted">
-              No chats yet. Add one with <b>+ Add chat</b>.
+              No conversations yet. Add one with <b>+ New conversation</b>.
             </section>
           )}
           {config.chats.map((c, i) => (
@@ -473,7 +473,7 @@ function PromptField({ chat, account, state, onChange }: { chat: Chat; account: 
         <textarea className="mono" rows={12} spellCheck={false} value={text} onChange={(e) => set(e.target.value)} />
       )}
       <p className="muted small">
-        Filled in for this chat:{' '}
+        Filled in for this conversation:{' '}
         {(state.placeholders ?? []).map((p, i) => (
           <span key={p.key} title={p.about}>
             {i > 0 && ' '}
@@ -517,7 +517,7 @@ function DirInput({ value, placeholder, onChange }: { value: string; placeholder
           Choose…
         </button>
         {value && (
-          <button type="button" className="ghost" title="Use the chat’s own folder" onClick={() => onChange('')}>
+          <button type="button" className="ghost" title="Use the conversation’s own folder" onClick={() => onChange('')}>
             ×
           </button>
         )}
@@ -573,7 +573,7 @@ function AddChatModal({ me, existing, chatsDir, onAdd, onClose }: {
     setStep(kind);
   };
   return (
-    <Modal title={chat && step === 'agent' ? `Add ${chat.name}` : 'Add a chat'} wide={step === 'agent'} onClose={onClose}>
+    <Modal title={chat && step === 'agent' ? `Add ${chat.name}` : 'New conversation'} wide={step === 'agent'} onClose={onClose}>
       {step === 'kind' && (
         <div className="choices">
           <button type="button" className="choice" onClick={() => go('group')}>
@@ -582,7 +582,7 @@ function AddChatModal({ me, existing, chatsDir, onAdd, onClose }: {
           </button>
           <button type="button" className="choice" onClick={() => go('person')}>
             <b>Direct message</b>
-            <span className="muted">a person, or your own “Message yourself” chat</span>
+            <span className="muted">a person, or “Message yourself”</span>
           </button>
         </div>
       )}
@@ -596,7 +596,7 @@ function AddChatModal({ me, existing, chatsDir, onAdd, onClose }: {
             </Field>
           </div>
           <AgentFields value={chat} defaultDir={`${chatsDir}/${dirName(chat.jid)}`} onChange={setChat} />
-          <p className="muted small">The system prompt can be changed on the chat’s card afterwards.</p>
+          <p className="muted small">The system prompt can be changed on the conversation’s card afterwards.</p>
           <div className="row end">
             <button type="button" onClick={() => setStep(from)}>
               Back
@@ -609,7 +609,7 @@ function AddChatModal({ me, existing, chatsDir, onAdd, onClose }: {
                 onClose();
               }}
             >
-              Add chat
+              Add conversation
             </button>
           </div>
         </>
@@ -683,7 +683,7 @@ function PersonPicker({ me, have, onPick, onBack }: { me: string; have: Set<stri
         {showMe && (
           <li>
             <button type="button" onClick={() => onPick({ jid: me, name: 'Me' })}>
-              You <span className="muted">your “Message yourself” chat</span>
+              You <span className="muted">“Message yourself”</span>
             </button>
           </li>
         )}
