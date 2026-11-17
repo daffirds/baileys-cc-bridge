@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api, type Agent, type Chat, type Config, type Group, type Model, type Person, type State, type Status } from './api';
 
-const ENGINES = ['claude', 'codex'];
+const ENGINES: Record<string, string> = { claude: 'Claude', codex: 'Codex' };
 const AUTONOMY: Record<string, string> = {
-  auto: 'auto: the engine’s own reviewer decides',
-  full: 'full: no prompts, no sandbox',
-  readonly: 'readonly: read-only, the rest is denied',
+  auto: 'Auto — a safety check reviews risky steps',
+  full: 'Full access — no prompts, no sandbox',
+  readonly: 'Read-only — can look, can’t change',
 };
+
+const effortName = (e: string) => (e === 'xhigh' ? 'Extra high' : e.charAt(0).toUpperCase() + e.slice(1));
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
@@ -351,14 +353,14 @@ function AgentFields<T extends Agent>({ value, onChange, defaultDir }: { value: 
       <Field label="Engine">
         {/* Models and efforts differ per engine, so switching starts from the new one's defaults. */}
         <select value={engine} onChange={(e) => set({ engine: e.target.value, model: '', effort: '' })}>
-          {ENGINES.map((e) => (
-            <option key={e} value={e}>
-              {e}
+          {Object.entries(ENGINES).map(([v, label]) => (
+            <option key={v} value={v}>
+              {label}
             </option>
           ))}
         </select>
       </Field>
-      <Field label="Autonomy">
+      <Field label="Permissions">
         <select value={value.autonomy || 'auto'} onChange={(e) => set({ autonomy: e.target.value })}>
           {Object.entries(AUTONOMY).map(([v, label]) => (
             <option key={v} value={v}>
@@ -378,7 +380,7 @@ function AgentFields<T extends Agent>({ value, onChange, defaultDir }: { value: 
           <i>Assisted by {engine === 'codex' ? 'Codex' : 'Claude'}</i>
         </span>
       </Field>
-      <Field label="Working directory" wide>
+      <Field label="Folder" wide>
         <DirInput value={value.workdir ?? ''} placeholder={defaultDir} onChange={(workdir) => set({ workdir })} />
       </Field>
     </div>
@@ -405,7 +407,7 @@ function ModelFields({ engine, model, effort, onChange }: {
       <>
         <Field label="Model">
           <select disabled value="">
-            <option value="">{error ? 'could not list models' : 'Loading…'}</option>
+            <option value="">{error ? 'Couldn’t load the models' : 'Loading…'}</option>
           </select>
         </Field>
         <Field label="Effort">
@@ -431,10 +433,10 @@ function ModelFields({ engine, model, effort, onChange }: {
       </Field>
       <Field label="Effort">
         <select value={effort} disabled={efforts.length === 0 && !effort} onChange={(e) => onChange({ effort: e.target.value })}>
-          <option value="">{chosen?.default_effort ? `Model default (${chosen.default_effort})` : 'Model default'}</option>
+          <option value="">{chosen?.default_effort ? `Model default (${effortName(chosen.default_effort)})` : 'Model default'}</option>
           {efforts.map((e) => (
             <option key={e} value={e}>
-              {e}
+              {effortName(e)}
             </option>
           ))}
           {effort && !efforts.includes(effort) && <option value={effort}>{effort} (not offered)</option>}
