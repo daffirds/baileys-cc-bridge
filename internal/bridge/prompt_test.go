@@ -4,8 +4,24 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/daffirds/bailey-cc-bridge/internal/config"
 	"github.com/daffirds/bailey-cc-bridge/internal/whatsapp"
 )
+
+func TestInstructions(t *testing.T) {
+	me := &whatsapp.Me{ID: "628880000000@s.whatsapp.net"}
+	got := instructions(&config.Chat{JID: me.ID, Name: "Me"}, me, "Owner")
+	if !strings.Contains(got, `connected to the WhatsApp chat "Me" (Owner's own "Message yourself" chat, 628880000000@s.whatsapp.net) through Owner's account (+628880000000).`) {
+		t.Errorf("default prompt filled in as\n%s", got)
+	}
+	if strings.Contains(got, "{") {
+		t.Errorf("a placeholder was left:\n%s", got)
+	}
+	group := &config.Chat{JID: "120363000000000000@g.us", Name: "Team", Agent: config.Agent{SystemPrompt: "Help {chat} ({chat_kind}) for {owner}."}}
+	if got := instructions(group, me, "Owner"); got != "Help Team (group) for Owner." {
+		t.Errorf("custom prompt filled in as %q", got)
+	}
+}
 
 func TestRenderMessage(t *testing.T) {
 	b := &Bridge{me: &whatsapp.Me{ID: "628880000000@s.whatsapp.net", Name: "Owner"}, notes: newRing[note](10)}

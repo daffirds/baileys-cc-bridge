@@ -34,7 +34,7 @@ chats:
     autonomy: full
   - jid: 120363012345678901@g.us
     engine: codex
-    prompt: only answer questions
+    system_prompt: only answer questions
 `), 0o600)
 	if err != nil {
 		t.Fatal(err)
@@ -48,7 +48,7 @@ chats:
 		t.Errorf("me = %+v", me)
 	}
 	if group.Name != "120363012345678901" || group.Engine != EngineCodex || group.Autonomy != AutonomyAuto ||
-		group.Prompt != "only answer questions" || !group.IsGroup() {
+		group.SystemPrompt != "only answer questions" || !group.IsGroup() {
 		t.Errorf("group = %+v", group)
 	}
 	if c.Chat("x@lid", "120363012345678901@g.us") != &c.Chats[1] {
@@ -67,7 +67,7 @@ func TestLoadRejectsUnknownEngine(t *testing.T) {
 func TestSaveKeepsWhatWasWritten(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	in := &Config{
-		Chats: []Chat{{JID: "6281234567890@s.whatsapp.net", Name: "Me", Agent: Agent{Engine: EngineCodex, Prompt: "line one\nline two"}}},
+		Chats: []Chat{{JID: "6281234567890@s.whatsapp.net", Name: "Me", Agent: Agent{Engine: EngineCodex, SystemPrompt: "line one\nline two"}}},
 	}
 	if err := Save(path, in); err != nil {
 		t.Fatal(err)
@@ -76,7 +76,7 @@ func TestSaveKeepsWhatWasWritten(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c := out.Chats[0]; c.Engine != EngineCodex || c.Prompt != "line one\nline two" || c.Autonomy != "" {
+	if c := out.Chats[0]; c.Engine != EngineCodex || c.SystemPrompt != "line one\nline two" || c.Autonomy != "" {
 		t.Errorf("chat = %+v", c)
 	}
 	if err := Save(path, &Config{Chats: []Chat{{JID: "nope"}}}); err == nil {

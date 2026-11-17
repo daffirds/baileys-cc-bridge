@@ -44,8 +44,9 @@ type Agent struct {
 	Autonomy string `yaml:"autonomy,omitempty" json:"autonomy,omitempty"` // auto (default) | full | readonly
 	// Workdir is where the agent runs. "" = the chat's own folder under ~/.bailey-cc-bridge/chats.
 	Workdir string `yaml:"workdir,omitempty" json:"workdir,omitempty"`
-	// Prompt is appended to the bridge's instructions.
-	Prompt string `yaml:"prompt,omitempty" json:"prompt,omitempty"`
+	// SystemPrompt replaces the bridge's built-in system prompt for this chat; "" keeps the
+	// built-in one. {owner}, {number}, {chat}, {chat_kind} and {chat_jid} are filled in.
+	SystemPrompt string `yaml:"system_prompt,omitempty" json:"system_prompt,omitempty"`
 }
 
 // Chat is one whitelisted chat: a person (…@s.whatsapp.net), a group (…@g.us) or yourself.

@@ -41,7 +41,7 @@ A running bridge applies changes within seconds.
 | `autonomy` | `auto` | `auto`: the engine's own reviewer · `full`: no prompts, no sandbox · `readonly` |
 | `model`, `effort` | CLI default | |
 | `workdir` | `~/.bailey-cc-bridge/chats/<chat>` | where the agent runs; must exist |
-| `prompt` | | appended to the bridge's instructions |
+| `system_prompt` | built in | the whole system prompt the agent gets, replacing the built-in one; `{owner}`, `{number}`, `{chat}`, `{chat_kind}` and `{chat_jid}` are filled in |
 
 Each entry under `chats` has a `jid`, a `name` and any of these. A `jid` is a group (`…@g.us`), a person (`…@s.whatsapp.net`, or just a phone number with country
 code) or yourself ("Message yourself"). `chats` prints yours.

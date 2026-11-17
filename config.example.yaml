@@ -13,5 +13,5 @@ chats:
     name: Project group
     engine: codex
     workdir: ~/Projects/Personal/scratch   # default: ~/.bailey-cc-bridge/chats/<chat>
-    prompt: |
-      You help in this group. Only answer when someone asks you something.
+    # system_prompt replaces the built-in prompt entirely (start from the one the config UI shows);
+    # {owner}, {number}, {chat}, {chat_kind} and {chat_jid} are filled in.
