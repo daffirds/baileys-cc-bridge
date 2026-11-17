@@ -36,11 +36,7 @@ Settings → Linked devices). A spare number works best. Your own works too, but
 as you.
 
 Then pick the chats it listens to; it ignores every other chat. Each one gets its own engine, model,
-folder and prompt:
-
-<p align="center">
-  <img alt="The panel: the linked account, Mochi Bot, with Claude and Codex both ready, and three conversations. The open one, a group, shows its engine, permissions, model, effort, footer, folder and system prompt." src="assets/panel.png" width="760">
-</p>
+folder and prompt.
 
 Before you add a group: anyone in it can ask the agent to do things on your Mac. Keep groups on
 `auto` or `readonly` ([Settings](#settings)), and use `full` only where you trust everyone.
@@ -93,6 +89,10 @@ and the agent gets the path.
 
 The panel edits `~/.baileys-cc-bridge/<number>/config.yaml` ([example](config.example.yaml)). A change
 applies from the chat's next message, after the agent has finished what it was doing.
+
+<p align="center">
+  <img alt="The panel: the linked account, Mochi Bot, with Claude and Codex both ready, and three conversations. The open one, a group, shows its engine, permissions, model, effort, footer, folder and system prompt." src="assets/panel.png" width="760">
+</p>
 
 | Key | Default | |
 |---|---|---|
