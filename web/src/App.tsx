@@ -39,6 +39,21 @@ function useModels(engine: string): { models: Model[] | null; error: string } {
   return got.engine === engine ? got : { models: null, error: '' };
 }
 
+// Who the prompt speaks of, to fill in its placeholders the way the bridge does.
+type Account = { me: string; owner: string; number: string };
+
+function fillPrompt(prompt: string, chat: Chat, a: Account) {
+  const kind = chat.jid.endsWith('@g.us') ? 'group' : chat.jid === a.me ? `${a.owner}'s own "Message yourself" chat` : 'direct chat';
+  const values: Record<string, string> = {
+    '{owner}': a.owner,
+    '{number}': a.number,
+    '{chat}': chat.name || chat.jid.split('@')[0],
+    '{chat_kind}': kind,
+    '{chat_jid}': chat.jid,
+  };
+  return prompt.replace(/\{(owner|number|chat_kind|chat_jid|chat)\}/g, (m) => values[m] ?? m);
+}
+
 // Mirrors the Go side: the directory name a chat's files live under.
 const dirName = (jid: string) => jid.replace(/[^A-Za-z0-9.-]/g, '_');
 
@@ -201,7 +216,8 @@ function Panel({ status }: { status: Status }) {
             <ChatCard
               key={c.jid}
               chat={c}
-              me={me}
+              account={{ me, owner: status.me?.name || 'the owner', number: status.number ?? '' }}
+              state={state}
               defaultDir={`${state.chats_dir}/${dirName(c.jid)}`}
               onChange={(c) => setChat(i, c)}
               onRemove={() => setConfig({ chats: config.chats.filter((_, j) => j !== i) })}
@@ -273,12 +289,7 @@ function Field({ label, wide, children }: { label: string; wide?: boolean; child
   );
 }
 
-function AgentFields<T extends Agent>({ value, onChange, defaultDir, prompt = true }: {
-  value: T;
-  onChange: (v: T) => void;
-  defaultDir: string;
-  prompt?: boolean; // show the system prompt
-}) {
+function AgentFields<T extends Agent>({ value, onChange, defaultDir }: { value: T; onChange: (v: T) => void; defaultDir: string }) {
   const set = (patch: Partial<Agent>) => onChange(clean({ ...value, ...patch }));
   const engine = value.engine || 'claude';
   return (
@@ -306,16 +317,6 @@ function AgentFields<T extends Agent>({ value, onChange, defaultDir, prompt = tr
       <Field label="Working directory" wide>
         <DirInput value={value.workdir ?? ''} placeholder={defaultDir} onChange={(workdir) => set({ workdir })} />
       </Field>
-      {prompt && (
-        <Field label="System prompt" wide>
-          <textarea
-            rows={3}
-            value={value.system_prompt ?? ''}
-            placeholder="the built-in one"
-            onChange={(e) => set({ system_prompt: e.target.value })}
-          />
-        </Field>
-      )}
     </div>
   );
 }
@@ -379,6 +380,50 @@ function ModelFields({ engine, model, effort, onChange }: {
   );
 }
 
+// PromptField shows the whole system prompt the chat's agent gets: the built-in one until it is
+// edited. Nothing else is added to it.
+function PromptField({ chat, account, state, onChange }: { chat: Chat; account: Account; state: State; onChange: (c: Chat) => void }) {
+  const [preview, setPreview] = useState(false);
+  const custom = !!chat.system_prompt?.trim();
+  const text = custom ? chat.system_prompt! : state.default_prompt;
+  // Back to the exact built-in text means following the built-in one again.
+  const set = (t: string) => onChange(clean({ ...chat, system_prompt: t.trim() === state.default_prompt.trim() ? '' : t }));
+  return (
+    <div className="prompt">
+      <div className="row between-tight">
+        <span className="label">
+          System prompt <span className={custom ? 'badge custom' : 'badge'}>{custom ? 'custom' : 'built-in'}</span>
+        </span>
+        <span className="row">
+          {custom && (
+            <button type="button" className="link" onClick={() => set(state.default_prompt)}>
+              Reset to built-in
+            </button>
+          )}
+          <button type="button" className="link" onClick={() => setPreview(!preview)}>
+            {preview ? 'Edit' : 'Preview'}
+          </button>
+        </span>
+      </div>
+      {preview ? (
+        <pre className="preview">{fillPrompt(text, chat, account)}</pre>
+      ) : (
+        <textarea className="mono" rows={12} spellCheck={false} value={text} onChange={(e) => set(e.target.value)} />
+      )}
+      <p className="muted small">
+        Filled in for this chat:{' '}
+        {Object.entries(state.placeholders ?? {}).map(([k, v], i) => (
+          <span key={k} title={v}>
+            {i > 0 && ' '}
+            <code>{k}</code>
+          </span>
+        ))}
+        . Clearing it all goes back to the built-in one.
+      </p>
+    </div>
+  );
+}
+
 function DirInput({ value, placeholder, onChange }: { value: string; placeholder: string; onChange: (v: string) => void }) {
   const [problem, setProblem] = useState('');
   useEffect(() => {
@@ -420,14 +465,15 @@ function DirInput({ value, placeholder, onChange }: { value: string; placeholder
   );
 }
 
-function ChatCard({ chat, me, defaultDir, onChange, onRemove }: {
+function ChatCard({ chat, account, state, defaultDir, onChange, onRemove }: {
   chat: Chat;
-  me: string;
+  account: Account;
+  state: State;
   defaultDir: string;
   onChange: (c: Chat) => void;
   onRemove: () => void;
 }) {
-  const kind = chat.jid.endsWith('@g.us') ? 'group' : chat.jid === me ? 'you' : 'person';
+  const kind = chat.jid.endsWith('@g.us') ? 'group' : chat.jid === account.me ? 'you' : 'person';
   return (
     <section className="card">
       <div className="row head">
@@ -439,6 +485,7 @@ function ChatCard({ chat, me, defaultDir, onChange, onRemove }: {
         </button>
       </div>
       <AgentFields value={chat} defaultDir={defaultDir} onChange={onChange} />
+      <PromptField chat={chat} account={account} state={state} onChange={onChange} />
     </section>
   );
 }
@@ -486,7 +533,7 @@ function AddChatModal({ me, existing, chatsDir, onAdd, onClose }: {
               <input value={chat.name ?? ''} onChange={(e) => setChat({ ...chat, name: e.target.value })} />
             </Field>
           </div>
-          <AgentFields value={chat} prompt={false} defaultDir={`${chatsDir}/${dirName(chat.jid)}`} onChange={setChat} />
+          <AgentFields value={chat} defaultDir={`${chatsDir}/${dirName(chat.jid)}`} onChange={setChat} />
           <p className="muted small">The system prompt can be changed on the chat’s card afterwards.</p>
           <div className="row end">
             <button type="button" onClick={() => setStep(from)}>

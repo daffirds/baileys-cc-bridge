@@ -34,6 +34,8 @@ export type State = {
   config_path: string;
   chats_dir: string; // each chat's default folder lives under here
   config: Config;
+  default_prompt: string; // the built-in system prompt, with {placeholders}
+  placeholders: Record<string, string>; // placeholder → what it becomes
 };
 
 const token = new URLSearchParams(location.hash.slice(1)).get('t') ?? '';

@@ -14,6 +14,7 @@ import (
 	"github.com/skip2/go-qrcode"
 
 	"github.com/daffirds/bailey-cc-bridge/internal/app"
+	"github.com/daffirds/bailey-cc-bridge/internal/bridge"
 	"github.com/daffirds/bailey-cc-bridge/internal/config"
 	"github.com/daffirds/bailey-cc-bridge/internal/whatsapp"
 )
@@ -49,7 +50,8 @@ func (s *server) connected() (number, path string, err error) {
 	return user(st.Me.ID), st.ConfigPath, nil
 }
 
-// state is what the panel edits: the linked number's config as written.
+// state is what the panel edits: the linked number's config as written, and the built-in system
+// prompt a chat starts from.
 func (s *server) state(w http.ResponseWriter, _ *http.Request) {
 	number, path, err := s.connected()
 	if err != nil {
@@ -65,9 +67,11 @@ func (s *server) state(w http.ResponseWriter, _ *http.Request) {
 		cfg.Chats = []config.Chat{}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"config_path": path,
-		"chats_dir":   filepath.Join(app.AccountDir(number), "chats"),
-		"config":      cfg,
+		"config_path":    path,
+		"chats_dir":      filepath.Join(app.AccountDir(number), "chats"),
+		"config":         cfg,
+		"default_prompt": bridge.DefaultSystemPrompt,
+		"placeholders":   bridge.Placeholders,
 	})
 }
 

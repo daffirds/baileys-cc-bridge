@@ -372,3 +372,42 @@ button.choice:hover {
 .wide-cell {
   grid-column: 1 / -1;
 }
+
+.prompt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.prompt .label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.row.between-tight {
+  justify-content: space-between;
+}
+
+.prompt textarea {
+  line-height: 1.5;
+}
+
+.preview {
+  margin: 0;
+  padding: 8px 10px;
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.badge.custom {
+  background: color-mix(in srgb, var(--warn) 25%, transparent);
+}
