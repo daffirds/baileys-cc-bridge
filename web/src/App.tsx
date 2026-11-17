@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api, type Agent, type Chat, type Config, type Group, type Model, type Person, type State, type Status } from './api';
+import { Icon } from './icons';
 
 const ENGINES: Record<string, string> = { claude: 'Claude', codex: 'Codex' };
 const AUTONOMY: Record<string, string> = {
@@ -88,11 +89,25 @@ export function App() {
   return (
     <main className="page">
       <header className="top">
-        <h1>baileys-cc-bridge</h1>
+        <Brand />
       </header>
       <Linking status={status} />
       {error && <p className="error">{error}</p>}
     </main>
+  );
+}
+
+function Brand({ children }: { children?: ReactNode }) {
+  return (
+    <div className="brand">
+      <span className="logo">
+        <Icon name="chat" size={22} />
+      </span>
+      <div>
+        <h1>baileys-cc-bridge</h1>
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -209,23 +224,31 @@ function Panel({ status }: { status: Status }) {
   return (
     <main className="page">
       <header className="top">
-        <div>
-          <h1>baileys-cc-bridge</h1>
-          <p className="muted">
-            WhatsApp <b>{who}</b>
+        <Brand>
+          <p className="account">
+            <span className="dot" />
+            {status.me?.name ? (
+              <span>
+                <b>{status.me.name}</b> · +{status.number}
+              </span>
+            ) : (
+              <b>+{status.number}</b>
+            )}
           </p>
-        </div>
+        </Brand>
         <div className="row">
           {config && (
             <span className={`save ${save.phase}`} title="The bridge applies changes between turns.">
               {{ saved: 'All changes saved', pending: 'Unsaved…', saving: 'Saving…', failed: 'Not saved' }[save.phase]}
             </span>
           )}
-          <button type="button" className="ghost danger" onClick={() => setLeaving(true)}>
+          <button type="button" className="ghost" onClick={() => setLeaving(true)}>
+            <Icon name="logout" size={16} />
             Log out
           </button>
           <button type="button" className="primary" disabled={!config} onClick={() => setAdding(true)}>
-            + New conversation
+            <Icon name="plus" size={16} />
+            New conversation
           </button>
         </div>
       </header>
@@ -269,7 +292,7 @@ function Panel({ status }: { status: Status }) {
           <p className="muted">Each conversation has its own agent. Messages anywhere else are ignored.</p>
           {config.chats.length === 0 && (
             <section className="card center muted">
-              No conversations yet. Add one with <b>+ New conversation</b>.
+              No conversations yet. Add one with <b>New conversation</b>.
             </section>
           )}
           {config.chats.map((c, i) => (
@@ -472,7 +495,7 @@ function PromptField({ chat, account, state, onChange }: { chat: Chat; account: 
       {preview ? (
         <pre className="preview">{fillPrompt(text, chat, account)}</pre>
       ) : (
-        <textarea className="mono" rows={12} spellCheck={false} value={text} onChange={(e) => set(e.target.value)} />
+        <textarea rows={12} spellCheck={false} value={text} onChange={(e) => set(e.target.value)} />
       )}
       <p className="muted small">
         Filled in for this conversation:{' '}
@@ -514,7 +537,7 @@ function DirInput({ value, placeholder, onChange }: { value: string; placeholder
   return (
     <div className="dir">
       <div className="row">
-        <input className="mono" value={value} placeholder={placeholder} spellCheck={false} onChange={(e) => onChange(e.target.value)} />
+        <input value={value} placeholder={placeholder} spellCheck={false} onChange={(e) => onChange(e.target.value)} />
         <button type="button" onClick={choose}>
           Choose…
         </button>
