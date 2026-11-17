@@ -22,7 +22,7 @@ import (
 type session struct {
 	b      *Bridge
 	chat   *config.Chat
-	dir    string // ~/.bailey-cc-bridge/chats/<chat>
+	dir    string // the chat's own folder, ~/.bailey-cc-bridge/chats/<chat>
 	log    *slog.Logger
 	inbox  chan *whatsapp.Message
 	ctx    context.Context
@@ -64,7 +64,39 @@ func (s *session) stop() {
 	<-s.done
 }
 
-func (s *session) mediaDir() string { return filepath.Join(s.dir, "media") }
+// folder is where the agent works: the configured working directory, else the chat's own folder.
+func (s *session) folder() (string, error) {
+	if s.chat.Workdir == "" {
+		return s.dir, os.MkdirAll(s.dir, 0o700)
+	}
+	if st, err := os.Stat(s.chat.Workdir); err != nil || !st.IsDir() {
+		return "", fmt.Errorf("working directory %s does not exist", s.chat.Workdir)
+	}
+	return s.chat.Workdir, nil
+}
+
+// mediaDir is where attachments are saved: .bailey-cc-bridge/media in the agent's folder. The
+// .bailey-cc-bridge folder git-ignores itself, so a folder that is a repo stays clean.
+func (s *session) mediaDir() (string, error) {
+	folder, err := s.folder()
+	if err != nil {
+		return "", err
+	}
+	own := filepath.Join(folder, ".bailey-cc-bridge")
+	dir := filepath.Join(own, "media")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		return "", err
+	}
+	if ignore := filepath.Join(own, ".gitignore"); !exists(ignore) {
+		_ = os.WriteFile(ignore, []byte("*\n"), 0o600)
+	}
+	return dir, nil
+}
+
+func exists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
 
 func (s *session) run() {
 	defer close(s.done)
@@ -200,16 +232,8 @@ func (s *session) start() error {
 	if err != nil {
 		return fmt.Errorf("%s CLI not found: %w", a.Engine, err)
 	}
-	workdir := a.Workdir
-	if workdir == "" {
-		workdir = filepath.Join(s.dir, "work")
-		if err := os.MkdirAll(workdir, 0o700); err != nil {
-			return err
-		}
-	} else if st, err := os.Stat(workdir); err != nil || !st.IsDir() {
-		return fmt.Errorf("working directory %s does not exist", workdir)
-	}
-	if err := os.MkdirAll(s.mediaDir(), 0o700); err != nil {
+	workdir, err := s.folder()
+	if err != nil {
 		return err
 	}
 	resume := s.b.state.engineID(s.chat.JID, a.Engine)
@@ -223,9 +247,9 @@ func (s *session) start() error {
 	spec := engine.Spec{
 		Binary: bin, Workdir: workdir, Instructions: instructions(s.chat, s.b.me, s.b.ownerName()),
 		Model: a.Model, Effort: a.Effort, Autonomy: a.Autonomy,
-		MCP:     engine.MCPServer{Name: tools.ServerName, URL: s.b.baseURL + s.mcpPath},
-		AddDirs: []string{s.mediaDir()}, ResumeID: resume,
-		Log: s.log,
+		MCP:      engine.MCPServer{Name: tools.ServerName, URL: s.b.baseURL + s.mcpPath},
+		ResumeID: resume,
+		Log:      s.log,
 	}
 	eng := s.b.engines[a.Engine]
 	p, err := eng.Start(s.ctx, spec)

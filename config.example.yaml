@@ -17,6 +17,6 @@ chats:
   - jid: 120363012345678901@g.us
     name: Project group
     engine: codex
-    workdir: ~/Projects/Personal/scratch   # default: ~/.bailey-cc-bridge/chats/<chat>/
+    workdir: ~/Projects/Personal/scratch   # default: ~/.bailey-cc-bridge/chats/<chat>
     prompt: |
       You help in this group. Only answer when someone asks you something.

@@ -164,7 +164,7 @@ func (b *Bridge) notesGet(id string) (note, bool) {
 
 const maxDownload = 100 << 20
 
-// download saves a message's attachment under the chat's media directory.
+// download saves a message's attachment in the media folder.
 func (s *session) download(m *whatsapp.Message) (string, error) {
 	if m.Media.Size > maxDownload {
 		return "", fmt.Errorf("not downloaded: larger than %d MB", maxDownload>>20)
@@ -173,10 +173,11 @@ func (s *session) download(m *whatsapp.Message) (string, error) {
 	if m.Media.FileName != "" {
 		name = m.ID + "-" + safeName(m.Media.FileName)
 	}
-	path := filepath.Join(s.mediaDir(), name)
-	if err := os.MkdirAll(s.mediaDir(), 0o700); err != nil {
+	dir, err := s.mediaDir()
+	if err != nil {
 		return "", err
 	}
+	path := filepath.Join(dir, name)
 	ctx, cancel := context.WithTimeout(s.ctx, 2*time.Minute)
 	defer cancel()
 	if err := s.b.wa.Download(ctx, m.ID, path); err != nil {

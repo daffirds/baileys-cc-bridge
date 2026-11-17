@@ -40,7 +40,7 @@ A running bridge applies changes within seconds.
 | `engine` | `claude` | `claude` or `codex` |
 | `autonomy` | `auto` | `auto`: the engine's own reviewer · `full`: no prompts, no sandbox · `readonly` |
 | `model`, `effort` | CLI default | |
-| `workdir` | `~/.bailey-cc-bridge/chats/<chat>/work` | where the agent runs; must exist |
+| `workdir` | `~/.bailey-cc-bridge/chats/<chat>` | where the agent runs; must exist |
 | `prompt` | | appended to the bridge's instructions |
 | `idle_timeout` | `30m` | |
 
@@ -61,7 +61,8 @@ The agent gets an MCP server named `whatsapp`, bound to its chat:
 | `chat_info` | a group's name, description and members (names, numbers, admins), or who a direct chat is with |
 
 `chat` can point a tool at another whitelisted chat, never at one outside the list. Incoming
-attachments are downloaded to `chats/<chat>/media/` and the path is given to the agent.
+attachments are saved to `.bailey-cc-bridge/media/` in the agent's folder and the path is given to
+the agent.
 
 ## Commands
 
@@ -79,8 +80,11 @@ WhatsApp at a time: a second connection would make WhatsApp drop the first.
 
 `~/.bailey-cc-bridge/`: `config.yaml`, `auth/` (WhatsApp credentials), `state.json` (each chat's
 conversation id), `groups.json`, `names.json` (names learned from senders, for prompts and
-`chat_info`), `sidecar/`, and `chats/<chat>/` with `work/`, `media/` and
-`transcript.jsonl` (every protocol line to and from the CLI).
+`chat_info`), `sidecar/`, and `chats/<chat>/`, the default folder of each chat's agent.
+
+The bridge's own files for a chat live in `.bailey-cc-bridge/` inside the agent's folder, so a
+working directory that is a real project gets one hidden folder and nothing else. It ignores itself
+in git. The conversations themselves are the CLIs' own (`~/.claude/projects`, `~/.codex/sessions`).
 
 ## Security
 

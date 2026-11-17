@@ -81,9 +81,6 @@ func (Engine) Start(_ context.Context, spec engine.Spec) (_ engine.Session, err 
 	if spec.Effort != "" && strings.Contains(help, "--effort") {
 		args = append(args, "--effort="+spec.Effort)
 	}
-	for _, d := range spec.AddDirs {
-		args = append(args, "--add-dir="+d)
-	}
 	id := spec.ResumeID
 	if id != "" {
 		args = append(args, "--resume="+id)

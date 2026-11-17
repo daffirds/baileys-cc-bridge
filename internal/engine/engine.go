@@ -23,8 +23,7 @@ type Spec struct {
 	Effort       string // reasoning effort; "" = the model's default
 	Autonomy     string // config.Autonomy*
 	MCP          MCPServer
-	AddDirs      []string // extra directories the agent may read and write (claude --add-dir)
-	ResumeID     string   // engine-native session id to resume; "" starts fresh
+	ResumeID     string // engine-native session id to resume; "" starts fresh
 	Log          *slog.Logger
 }
 
