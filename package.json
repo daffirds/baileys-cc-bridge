@@ -1,0 +1,42 @@
+{
+  "name": "baileys-cc-bridge",
+  "version": "0.1.0",
+  "description": "Every message in the WhatsApp chats you pick goes to a Claude Code or Codex session on your Mac.",
+  "keywords": [
+    "whatsapp",
+    "baileys",
+    "claude-code",
+    "codex",
+    "agent",
+    "mcp",
+    "macos"
+  ],
+  "homepage": "https://github.com/daffirds/baileys-cc-bridge#readme",
+  "bugs": "https://github.com/daffirds/baileys-cc-bridge/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/daffirds/baileys-cc-bridge.git"
+  },
+  "license": "MIT",
+  "author": "daffirds",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64",
+    "x64"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "bin": {
+    "baileys-cc-bridge": "dist/baileys-cc-bridge"
+  },
+  "files": [
+    "dist/baileys-cc-bridge"
+  ],
+  "scripts": {
+    "build": "scripts/build-npm.sh",
+    "prepack": "scripts/build-npm.sh"
+  }
+}
