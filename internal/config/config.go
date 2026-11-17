@@ -29,8 +29,8 @@ const (
 	AutonomyReadOnly = "readonly" // read-only; anything that would prompt is denied
 )
 
-// Path is where the config lives.
-func Path() string { return filepath.Join(app.Home(), "config.yaml") }
+// Path is where the config of a linked number lives.
+func Path(number string) string { return filepath.Join(app.AccountDir(number), "config.yaml") }
 
 type Config struct {
 	Chats []Chat `yaml:"chats" json:"chats"`

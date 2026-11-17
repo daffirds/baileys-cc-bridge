@@ -55,6 +55,6 @@ func runChats(ctx context.Context, args []string) error {
 		fmt.Println("  (none)")
 	}
 	fmt.Printf("\nPeople: use their phone number with country code as the jid, e.g. \"+62 812-3456-7890\".\n"+
-		"`run` also logs the JID of every chat it ignores. Add chats to %s.\n", config.Path())
+		"`run` also logs the JID of every chat it ignores. Add chats to %s.\n", config.Path(strings.Split(me.ID, "@")[0]))
 	return nil
 }

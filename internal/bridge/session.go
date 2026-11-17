@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/daffirds/bailey-cc-bridge/internal/app"
 	"github.com/daffirds/bailey-cc-bridge/internal/config"
 	"github.com/daffirds/bailey-cc-bridge/internal/engine"
 	"github.com/daffirds/bailey-cc-bridge/internal/engine/claude"
@@ -22,7 +21,7 @@ import (
 type session struct {
 	b      *Bridge
 	chat   *config.Chat
-	dir    string // the chat's own folder, ~/.bailey-cc-bridge/chats/<chat>
+	dir    string // the chat's own folder, ~/.bailey-cc-bridge/<number>/chats/<chat>
 	log    *slog.Logger
 	inbox  chan *whatsapp.Message
 	ctx    context.Context
@@ -40,7 +39,7 @@ func newSession(b *Bridge, chat *config.Chat) *session {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &session{
 		b: b, chat: chat,
-		dir:    filepath.Join(app.Home(), "chats", dirName(chat.JID)),
+		dir:    filepath.Join(b.dir, "chats", dirName(chat.JID)),
 		log:    b.log.With("chat", chat.Name),
 		inbox:  make(chan *whatsapp.Message, 256),
 		ctx:    ctx,

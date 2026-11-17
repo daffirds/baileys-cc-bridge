@@ -10,7 +10,7 @@
 // Responses: {"type":"response","id":1,"result":{…}}  or  {"type":"response","id":1,"error":"…"}
 
 import { createDecipheriv, hkdfSync } from 'node:crypto';
-import { createWriteStream, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { createWriteStream, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { pipeline } from 'node:stream/promises';
@@ -61,6 +61,7 @@ if (!opts.auth) {
 }
 
 const logger = pino({ level: opts['log-level'] }, pino.destination(2));
+const home = dirname(opts.auth); // the bridge's home: auth/ and one folder per linked number
 
 // What this account sends from its other devices arrives wrapped (deviceSentMessage), and Baileys
 // unwraps it without the wrapper's messageContextInfo, which holds the secret that later edits are
@@ -109,6 +110,7 @@ function connect() {
 		if (qr) onQR(qr);
 		if (connection === 'open') {
 			const me = sock.user;
+			if (me?.id) loadNames(userOf(me.id));
 			emit({
 				type: 'ready',
 				me: {
@@ -228,25 +230,30 @@ async function onMessage(m: WAMessage) {
 }
 
 // People's names by JID: the name saved in the address book when WhatsApp synced one, else the
-// name they gave themselves. Kept in names.json next to the credentials, so a restart doesn't
-// forget everyone.
+// name they gave themselves. Kept in <number>/names.json under the bridge's home (next to auth/),
+// so a restart doesn't forget everyone and another linked number starts with its own.
 const names = new Map<string, string>();
 const savedNames = new Set<string>();
-const namesFile = join(dirname(opts.auth), 'names.json');
+let namesFile = ''; // known once connected
 let namesDirty = false;
 
-try {
-	const stored = JSON.parse(readFileSync(namesFile, 'utf8')) as { names?: Record<string, string>; saved?: string[] };
-	for (const [jid, name] of Object.entries(stored.names ?? {})) names.set(jid, name);
-	for (const jid of stored.saved ?? []) savedNames.add(jid);
-} catch {
-	// first run, or unreadable: start empty
+function loadNames(number: string) {
+	if (namesFile) return;
+	namesFile = join(home, number, 'names.json');
+	try {
+		const stored = JSON.parse(readFileSync(namesFile, 'utf8')) as { names?: Record<string, string>; saved?: string[] };
+		for (const [jid, name] of Object.entries(stored.names ?? {})) if (!names.has(jid)) names.set(jid, name);
+		for (const jid of stored.saved ?? []) savedNames.add(jid);
+	} catch {
+		// first run, or unreadable: start empty
+	}
 }
 
 function saveNames() {
-	if (!namesDirty) return;
+	if (!namesDirty || !namesFile) return;
 	namesDirty = false;
 	try {
+		mkdirSync(dirname(namesFile), { recursive: true, mode: 0o700 });
 		writeFileSync(namesFile + '.tmp', JSON.stringify({ names: Object.fromEntries(names), saved: [...savedNames] }), { mode: 0o600 });
 		renameSync(namesFile + '.tmp', namesFile);
 	} catch (err) {

@@ -18,18 +18,18 @@ import (
 // state is everything the page needs: the config as written, the linked account and the groups
 // last fetched from WhatsApp.
 func (s *server) state(w http.ResponseWriter, _ *http.Request) {
-	cfg, err := config.Read(config.Path())
-	if err != nil {
-		writeErr(w, http.StatusInternalServerError, err)
-		return
+	number, _ := whatsapp.Linked()
+	cfg, path, me := &config.Config{}, "", ""
+	if number != "" {
+		var err error
+		path, me = config.Path(number), number+"@s.whatsapp.net"
+		if cfg, err = config.Read(path); err != nil {
+			writeErr(w, http.StatusInternalServerError, err)
+			return
+		}
 	}
 	if cfg.Chats == nil {
 		cfg.Chats = []config.Chat{}
-	}
-	number, _ := whatsapp.Linked()
-	me := ""
-	if number != "" {
-		me = number + "@s.whatsapp.net"
 	}
 	groups, updated := whatsapp.CachedGroups()
 	if groups == nil {
@@ -40,8 +40,8 @@ func (s *server) state(w http.ResponseWriter, _ *http.Request) {
 		when = updated.Format(time.RFC3339)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"config_path":    config.Path(),
-		"chats_dir":      filepath.Join(app.Home(), "chats"),
+		"config_path":    path,
+		"chats_dir":      filepath.Join(app.AccountDir(number), "chats"),
 		"linked":         number,
 		"me":             me,
 		"config":         cfg,
@@ -56,7 +56,12 @@ func (s *server) saveConfig(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, err)
 		return
 	}
-	if err := config.Save(config.Path(), &c); err != nil {
+	number, ok := whatsapp.Linked()
+	if !ok {
+		writeErr(w, http.StatusConflict, errors.New("link WhatsApp first: `bailey-cc-bridge login`"))
+		return
+	}
+	if err := config.Save(config.Path(number), &c); err != nil {
 		writeErr(w, http.StatusBadRequest, err)
 		return
 	}

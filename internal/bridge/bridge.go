@@ -37,6 +37,7 @@ type Bridge struct {
 	me      *whatsapp.Me
 	host    *tools.Host
 	baseURL string // where host is served, e.g. http://127.0.0.1:53123
+	dir     string // the linked number's folder (app.AccountDir)
 	log     *slog.Logger
 	state   *state
 
@@ -74,7 +75,8 @@ func Models(ctx context.Context, name string) ([]engine.Model, error) {
 func New(cfg *config.Config, cfgPath string, wa WhatsApp, me *whatsapp.Me, host *tools.Host, baseURL string, log *slog.Logger) *Bridge {
 	return &Bridge{
 		cfg: cfg, cfgPath: cfgPath, wa: wa, me: me, host: host, baseURL: baseURL, log: log,
-		state:    loadState(filepath.Join(app.Home(), "state.json")),
+		dir:      app.AccountDir(user(me.ID)),
+		state:    loadState(filepath.Join(app.AccountDir(user(me.ID)), "state.json")),
 		sessions: map[string]*session{},
 		notes:    newRing[note](5000),
 		last:     map[string]string{},

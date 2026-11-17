@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"net"
@@ -17,11 +18,18 @@ import (
 func runRun(ctx context.Context, args []string) error {
 	fs := flag.NewFlagSet("run", flag.ContinueOnError)
 	debug := fs.Bool("debug", false, "verbose logs")
-	path := fs.String("config", config.Path(), "config file")
+	path := fs.String("config", "", "config file (default: the linked number's config.yaml)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 	log := newLogger(*debug)
+	number, ok := whatsapp.Linked()
+	if !ok {
+		return errors.New("this Mac is not linked to WhatsApp yet: run `bailey-cc-bridge login`")
+	}
+	if *path == "" {
+		*path = config.Path(number)
+	}
 	cfg, err := config.Load(*path)
 	if err != nil {
 		return err

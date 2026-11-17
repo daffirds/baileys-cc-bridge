@@ -32,7 +32,7 @@ The first command that connects installs the sidecar's npm packages under `~/.ba
 
 ## Config
 
-`~/.bailey-cc-bridge/config.yaml`, edited with `ui` or by hand (see [config.example.yaml](config.example.yaml)).
+`~/.bailey-cc-bridge/<number>/config.yaml`, edited with `ui` or by hand (see [config.example.yaml](config.example.yaml)).
 A running bridge applies changes within seconds.
 
 | Key | Default | |
@@ -40,7 +40,7 @@ A running bridge applies changes within seconds.
 | `engine` | `claude` | `claude` or `codex` |
 | `autonomy` | `auto` | `auto`: the engine's own reviewer · `full`: no prompts, no sandbox · `readonly` |
 | `model`, `effort` | CLI default | |
-| `workdir` | `~/.bailey-cc-bridge/chats/<chat>` | where the agent runs; must exist |
+| `workdir` | `~/.bailey-cc-bridge/<number>/chats/<chat>` | where the agent runs; must exist |
 | `system_prompt` | built in | the whole system prompt the agent gets, replacing the built-in one; `{owner}`, `{number}`, `{chat}`, `{chat_kind}` and `{chat_jid}` are filled in |
 
 Each entry under `chats` has a `jid`, a `name` and any of these. A `jid` is a group (`…@g.us`), a person (`…@s.whatsapp.net`, or just a phone number with country
@@ -76,9 +76,16 @@ WhatsApp at a time: a second connection would make WhatsApp drop the first.
 
 ## Files
 
-`~/.bailey-cc-bridge/`: `config.yaml`, `auth/` (WhatsApp credentials), `state.json` (each chat's
-conversation id), `groups.json`, `names.json` (names learned from senders, for prompts and
-`chat_info`), `sidecar/`, and `chats/<chat>/`, the default folder of each chat's agent.
+`~/.bailey-cc-bridge/` holds `auth/` (the linked device's WhatsApp credentials), `sidecar/` and
+one folder per number that has been linked, so another number never shares a chat's conversation:
+
+```
+~/.bailey-cc-bridge/<number>/
+  config.yaml   the whitelist
+  state.json    each chat's conversation id
+  names.json    names learned from senders, for prompts and chat_info
+  chats/<chat>/ each chat's default folder
+```
 
 The bridge's own files for a chat live in `.bailey-cc-bridge/` inside the agent's folder, so a
 working directory that is a real project gets one hidden folder and nothing else. It ignores itself
