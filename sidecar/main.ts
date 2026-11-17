@@ -9,6 +9,7 @@
 //            (methods: send_text, send_media, react, chat_info, download, chats, logout)
 // Responses: {"type":"response","id":1,"result":{…}}  or  {"type":"response","id":1,"error":"…"}
 
+import { createDecipheriv, hkdfSync } from 'node:crypto';
 import { createWriteStream, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { createInterface } from 'node:readline';
@@ -60,6 +61,17 @@ if (!opts.auth) {
 }
 
 const logger = pino({ level: opts['log-level'] }, pino.destination(2));
+
+// What this account sends from its other devices arrives wrapped (deviceSentMessage), and Baileys
+// unwraps it without the wrapper's messageContextInfo, which holds the secret that later edits are
+// sealed with (see openEdit). Hand it to the inner message before Baileys drops the wrapper.
+const decode = proto.Message.decode.bind(proto.Message);
+proto.Message.decode = (...args: Parameters<typeof decode>) => {
+	const m = decode(...args);
+	const inner = m.deviceSentMessage?.message;
+	if (inner && !inner.messageContextInfo) inner.messageContextInfo = m.messageContextInfo;
+	return m;
+};
 
 type Json = Record<string, unknown>;
 
@@ -182,8 +194,9 @@ async function onMessage(m: WAMessage) {
 	const remote = key.remoteJid;
 	if (!key.id || !remote || isJidBroadcast(remote) || isJidNewsletter(remote)) return;
 	const content = normalizeMessageContent(m.message);
-	const body = content && describe(content);
-	if (!body) return; // a stub that failed to decrypt, or protocol noise with nothing to say
+	if (!content) return; // a stub that failed to decrypt
+	const body = content.secretEncryptedMessage ? openEdit(m, content.secretEncryptedMessage) : describe(content);
+	if (!body) return; // protocol noise with nothing to say
 	remember(m);
 	const group = Boolean(isJidGroup(remote));
 	const chat = group ? remote : await phoneJid(remote, key.remoteJidAlt);
@@ -339,6 +352,47 @@ function describe(c: proto.IMessage): Body | undefined {
 	// from the fifth hop on).
 	if (ctx?.isForwarded) body.forwarded = (ctx.forwardingScore ?? 0) >= 5 ? 'many' : 'yes';
 	return body;
+}
+
+// Current clients send an edit sealed with the edited message's secret, which Baileys 7 doesn't open:
+// AES-256-GCM under HKDF-SHA256(secret, info = message id + author + editor + "Message Edit"). The
+// author and editor may each go by their phone number or their @lid, so every pairing is tried; GCM
+// rejects the wrong ones. Only edits of messages seen since the sidecar started can be opened.
+function openEdit(m: WAMessage, sealed: proto.Message.ISecretEncryptedMessage): Body | undefined {
+	if (sealed.secretEncType !== proto.Message.SecretEncryptedMessage.SecretEncType.MESSAGE_EDIT) return undefined;
+	const id = sealed.targetMessageKey?.id;
+	const original = id ? recent.get(id) : undefined;
+	const secret = original?.message?.messageContextInfo?.messageSecret;
+	if (!id || !original || !secret || !sealed.encPayload || !sealed.encIv) {
+		logger.warn({ id, known: Boolean(original) }, 'cannot open an edit: the original message or its secret is unknown');
+		return undefined;
+	}
+	const data = Buffer.from(sealed.encPayload);
+	for (const author of aliases(original.key)) {
+		for (const editor of aliases(m.key)) {
+			const key = Buffer.from(hkdfSync('sha256', secret, Buffer.alloc(32), id + author + editor + 'Message Edit', 32));
+			let plain: Buffer;
+			try {
+				const d = createDecipheriv('aes-256-gcm', key, sealed.encIv);
+				d.setAuthTag(data.subarray(-16));
+				plain = Buffer.concat([d.update(data.subarray(0, -16)), d.final()]);
+			} catch {
+				continue;
+			}
+			const c = normalizeMessageContent(proto.Message.decode(plain));
+			const edited = c?.protocolMessage?.editedMessage ? normalizeMessageContent(c.protocolMessage.editedMessage) : c;
+			return { kind: 'edit', target: id, text: textOf(edited) };
+		}
+	}
+	logger.warn({ id }, 'cannot open an edit: no key fits');
+	return undefined;
+}
+
+// The JIDs a message's author goes by, without device: phone number and @lid when known.
+function aliases(k: WAMessage['key']): string[] {
+	const group = Boolean(k.remoteJid && isJidGroup(k.remoteJid));
+	const ids = k.fromMe ? [sock.user?.id, sock.user?.lid] : group ? [k.participant, k.participantAlt] : [k.remoteJid, k.remoteJidAlt];
+	return [...new Set(ids.filter((j): j is string => Boolean(j)).map((j) => jidNormalizedUser(j)))];
 }
 
 function contentOf(c: proto.IMessage, type: string, node: Node): Body {
