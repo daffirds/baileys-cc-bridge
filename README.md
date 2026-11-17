@@ -50,7 +50,7 @@ joins in when it can help, no tag needed:
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/how-it-works.svg">
     <source media="(prefers-color-scheme: light)" srcset="assets/how-it-works-light.svg">
-    <img alt="People message the WhatsApp number. The bridge passes each message to that chat's Claude Code or Codex session on your Mac, steering it into the turn already running. The agent thinks, runs commands and edits files on the Mac, and acts on WhatsApp only through tool calls: those, and nothing else, come back to the chat as messages, files and reactions." src="assets/how-it-works-light.svg" width="100%">
+    <img alt="Your message in the WhatsApp group is steered into the agent's Claude Code session on your Mac. The agent runs commands there, and its tool calls come back as the chat's next bubbles: send_message as Mochi Bot's answer, send_file as the PDF, and react as the heart on Rina's thanks, after her message is steered in too." src="assets/how-it-works-light.svg" width="100%">
   </picture>
 </p>
 

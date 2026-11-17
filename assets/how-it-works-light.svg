@@ -1,53 +1,66 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="460" viewBox="0 0 1280 460" role="img" aria-labelledby="t d">
-<title id="t">How baileys-cc-bridge works</title>
-<desc id="d">People message the WhatsApp number. The bridge passes each message to that chat's Claude Code or Codex session on your Mac, steering it into the turn already running. The agent thinks, runs commands and edits files on the Mac, and acts on WhatsApp only through tool calls: those, and nothing else, come back to the chat as messages, files and reactions.</desc>
-<rect x="1" y="1" width="1278" height="458" rx="24" fill="#ffffff" stroke="#d1d7db" stroke-width="2"/>
-<rect x="48" y="60" width="320" height="300" rx="16" fill="#f6f8fa" stroke="#d1d7db" stroke-width="1.5"/>
-<circle cx="72" cy="87" r="5" fill="#00a884"/>
-<text x="86" y="92" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#111b21">WhatsApp</text>
-<text x="86" y="111" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" fill="#667781">what people see</text>
-<rect x="66" y="124" width="226" height="46" rx="9" fill="#ffffff" stroke="#d1d7db" stroke-width="1"/>
-<text x="76" y="141" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#c4532c">Rina</text>
-<text x="76" y="160" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" fill="#111b21">who's booking the villa? 🏝️</text>
-<rect x="108" y="178" width="242" height="30" rx="9" fill="#d9fdd3" stroke="#d1d7db" stroke-width="0"/>
-<text x="118" y="198" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" fill="#111b21"><tspan fill="#00a884">@Claude</tspan> find us one in Ubud</text>
-<rect x="66" y="216" width="236" height="46" rx="9" fill="#ffffff" stroke="#d1d7db" stroke-width="1"/>
-<text x="76" y="233" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#c15f3c">Claude 🤖</text>
-<text x="76" y="252" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" fill="#111b21">Found 3, all free Fri–Sun 🏡</text>
-<rect x="66" y="270" width="236" height="46" rx="9" fill="#ffffff" stroke="#d1d7db" stroke-width="1"/>
-<text x="76" y="287" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11.5" font-weight="700" fill="#c15f3c">Claude 🤖</text>
-<text x="76" y="306" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" fill="#111b21">📄 ubud-villas.pdf</text>
-<text x="66" y="342" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" fill="#667781">only what the agent sends</text>
-<rect x="476" y="120" width="328" height="180" rx="16" fill="#f6f8fa" stroke="#d1d7db" stroke-width="1.5"/>
-<circle cx="500" cy="147" r="5" fill="#111b21"/>
-<text x="514" y="152" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#111b21">baileys-cc-bridge</text>
-<text x="514" y="171" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" fill="#667781">on your Mac</text>
-<text x="500" y="206" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" fill="#111b21"><tspan fill="#667781">·</tspan><tspan dx="8">one session per chat</tspan></text>
-<text x="500" y="234" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" fill="#111b21"><tspan fill="#667781">·</tspan><tspan dx="8">messages steered in mid-turn</tspan></text>
-<text x="500" y="262" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" fill="#111b21"><tspan fill="#667781">·</tspan><tspan dx="8">tools bound to the chat</tspan></text>
-<rect x="912" y="60" width="320" height="300" rx="16" fill="#f6f8fa" stroke="#d1d7db" stroke-width="1.5"/>
-<circle cx="936" cy="87" r="5" fill="#c15f3c"/>
-<text x="950" y="92" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#111b21">Claude Code · Codex</text>
-<text x="950" y="111" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" fill="#667781">the agent's computer</text>
-<rect x="930" y="124" width="284" height="200" rx="10" fill="#ffffff" stroke="#d1d7db" stroke-width="1"/>
-<text x="944" y="150" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#667781">thinking about villas…</text>
-<text x="944" y="180" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#667781">$ curl -s villas.example/ubud</text>
-<text x="944" y="210" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#667781">$ python make_pdf.py</text>
-<text x="944" y="240" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#667781">✎ ubud-villas.pdf</text>
-<text x="944" y="270" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#c15f3c">⚙ send_message &quot;Found 3…&quot;</text>
-<text x="944" y="300" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="12.5" fill="#c15f3c">⚙ send_file ubud-villas.pdf</text>
-<text x="930" y="342" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" fill="#667781">thinking, commands and logs stay here</text>
-<line x1="370" y1="180" x2="472" y2="180" stroke="#00a884" stroke-width="2.5"/>
-<path d="M474,180 l-11,-6 v12 z" fill="#00a884"/>
-<text x="421.0" y="168" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" fill="#667781">messages</text>
-<line x1="806" y1="180" x2="908" y2="180" stroke="#00a884" stroke-width="2.5"/>
-<path d="M910,180 l-11,-6 v12 z" fill="#00a884"/>
-<text x="857.0" y="168" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" fill="#667781">steered in</text>
-<line x1="908" y1="260" x2="806" y2="260" stroke="#c15f3c" stroke-width="2.5"/>
-<path d="M804,260 l11,-6 v12 z" fill="#c15f3c"/>
-<text x="857.0" y="282" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" fill="#667781">tool calls</text>
-<line x1="472" y1="260" x2="370" y2="260" stroke="#c15f3c" stroke-width="2.5"/>
-<path d="M368,260 l11,-6 v12 z" fill="#c15f3c"/>
-<text x="421.0" y="282" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" fill="#667781">sends</text>
-<text x="640" y="414" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" fill="#111b21">The agent works on your Mac and acts on WhatsApp only through its tools.</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="470" viewBox="0 0 1280 470" role="img" aria-labelledby="t d">
+<title id="t">How a message reaches the agent and its answer comes back</title>
+<desc id="d">Your message in the WhatsApp group is steered into the agent's Claude Code session on your Mac. The agent runs commands there, then its tool calls come back as the chat's next bubbles: send_message as Mochi Bot's answer, send_file as the PDF, and react as the heart on Rina's thanks, after her message is steered in too.</desc>
+<rect x="1" y="1" width="1278" height="468" rx="24" fill="#ffffff" stroke="#d1d7db" stroke-width="2"/>
+<rect x="40" y="40" width="440" height="392" rx="16" fill="#efeae2" stroke="#d1d7db" stroke-width="1.5"/>
+<path d="M40 56 a16 16 0 0 1 16 -16 h408 a16 16 0 0 1 16 16 v44 h-440 z" fill="#f0f2f5"/>
+<circle cx="78" cy="70" r="19" fill="#dfe5e7"/>
+<text x="78" y="77" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="19">🏝️</text>
+<text x="108" y="66" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="16" font-weight="700" fill="#111b21">Bali trip</text>
+<text x="108" y="86" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" fill="#667781">Rina, Mochi Bot, You</text>
+<rect x="196" y="112" width="268" height="70" rx="10" fill="#d9fdd3"/>
+<text x="208" y="136" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13.5" fill="#111b21">hmm, any good villa in Ubud for 4?</text>
+<text x="208" y="156" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13.5" fill="#111b21">under 3jt a night</text>
+<text x="454" y="174" text-anchor="end" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11"><tspan fill="#5e7a6e">10:42</tspan><tspan dx="4" fill="#2b9fd8">✓✓</tspan></text>
+<circle cx="70" cy="206" r="14" fill="#c15f3c"/>
+<text x="70" y="211" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#ffffff">🤖</text>
+<rect x="92" y="190" width="250" height="90" rx="10" fill="#ffffff"/>
+<text x="104" y="209" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#c15f3c">Mochi Bot</text>
+<text x="104" y="229" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13.5" fill="#111b21">Hey! Found 3 with a pool,</text>
+<text x="104" y="249" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13.5" fill="#111b21">all free that weekend 🏡</text>
+<text x="104" y="269" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12" font-style="italic" fill="#667781">Assisted by Claude</text>
+<text x="332" y="272" text-anchor="end" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" fill="#667781">10:44</text>
+<rect x="92" y="286" width="250" height="58" rx="10" fill="#ffffff"/>
+<rect x="100" y="294" width="234" height="42" rx="7" fill="#f5f6f6"/>
+<path d="M112 302 h16 l8 8 v18 a2 2 0 0 1 -2 2 h-22 a2 2 0 0 1 -2 -2 v-24 a2 2 0 0 1 2 -2 z" fill="#e5533d"/>
+<text x="123" y="324" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="7.5" font-weight="800" fill="#ffffff">PDF</text>
+<text x="146" y="313" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#111b21">ubud-villas.pdf</text>
+<text x="146" y="330" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12" fill="#667781">3 pages · PDF</text>
+<text x="326" y="330" text-anchor="end" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" fill="#667781">10:44</text>
+<circle cx="70" cy="368" r="14" fill="#c4532c"/>
+<text x="70" y="373" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" font-weight="700" fill="#ffffff">R</text>
+<rect x="92" y="352" width="270" height="70" rx="10" fill="#ffffff"/>
+<text x="104" y="371" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#c4532c">Rina</text>
+<text x="104" y="391" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13.5" fill="#111b21">woah the 2nd one looks amazing 😍</text>
+<text x="104" y="411" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13.5" fill="#111b21">thanks Mochi Bot!</text>
+<text x="352" y="414" text-anchor="end" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" fill="#667781">10:45</text>
+<rect x="102" y="416" width="30" height="22" rx="11" fill="#ffffff" stroke="#efeae2" stroke-width="2"/>
+<text x="117" y="432" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12">❤️</text>
+<rect x="604" y="56" width="72" height="360" rx="36" fill="none" stroke="#d1d7db" stroke-width="2"/>
+<text transform="translate(645 236) rotate(-90)" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14" letter-spacing="3" fill="#667781">baileys-cc-bridge</text>
+<rect x="800" y="40" width="440" height="392" rx="16" fill="#f6f8fa" stroke="#d1d7db" stroke-width="1.5"/>
+<circle cx="824" cy="66" r="6" fill="#d1d7db"/>
+<circle cx="842" cy="66" r="6" fill="#d1d7db"/>
+<circle cx="860" cy="66" r="6" fill="#d1d7db"/>
+<text x="884" y="71" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#111b21">Claude Code</text>
+<text x="986" y="71" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="13" fill="#667781">on your Mac</text>
+<line x1="800" y1="92" x2="1240" y2="92" stroke="#d1d7db" stroke-width="1.5"/>
+<text x="822" y="126" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#00a884" font-weight="700">→ You: hmm, any good villa in Ubud…</text>
+<text x="840" y="154" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#667781">$ curl -s villas.example/ubud</text>
+<text x="840" y="180" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#667781">$ python make_pdf.py</text>
+<text x="840" y="208" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#c15f3c">⚙ send_message &quot;Hey! Found 3…&quot;</text>
+<text x="840" y="236" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#c15f3c">⚙ send_file ubud-villas.pdf</text>
+<text x="822" y="310" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#00a884" font-weight="700">→ Rina: woah the 2nd one…</text>
+<text x="840" y="338" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" fill="#c15f3c">⚙ react ❤️</text>
+<path d="M470 147.0 C 633.0 147.0, 633.0 121, 796 121" fill="none" stroke="#00a884" stroke-width="2.2"/>
+<path d="M798,121 l-11,-6 v12 z" fill="#00a884"/>
+<text x="633.0" y="124.0" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" fill="#667781" stroke="#ffffff" stroke-width="5" paint-order="stroke">steered in</text>
+<path d="M796 203 C 572.0 203, 572.0 235.0, 348 235.0" fill="none" stroke="#c15f3c" stroke-width="2.2"/>
+<path d="M346,235.0 l11,-6 v12 z" fill="#c15f3c"/>
+<path d="M796 231 C 572.0 231, 572.0 315.0, 348 315.0" fill="none" stroke="#c15f3c" stroke-width="2.2"/>
+<path d="M346,315.0 l11,-6 v12 z" fill="#c15f3c"/>
+<path d="M368 379.0 C 582.0 379.0, 582.0 305, 796 305" fill="none" stroke="#00a884" stroke-width="2.2"/>
+<path d="M798,305 l-11,-6 v12 z" fill="#00a884"/>
+<path d="M796 333 C 582.0 333, 582.0 401.0, 368 401.0" fill="none" stroke="#c15f3c" stroke-width="2.2"/>
+<path d="M366,401.0 l11,-6 v12 z" fill="#c15f3c"/>
 </svg>
