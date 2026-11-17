@@ -47,13 +47,25 @@ type Agent struct {
 	// SystemPrompt replaces the bridge's built-in system prompt for this chat; "" keeps the
 	// built-in one. {owner}, {number}, {chat}, {chat_kind} and {chat_jid} are filled in.
 	SystemPrompt string `yaml:"system_prompt,omitempty" json:"system_prompt,omitempty"`
+	// Footer puts "Assisted by Claude" (or Codex) under what the agent sends. On unless false.
+	Footer *bool `yaml:"footer,omitempty" json:"footer,omitempty"`
 }
+
+// FooterOn reports whether the agent's messages carry the footer.
+func (a *Agent) FooterOn() bool { return a.Footer == nil || *a.Footer }
 
 // Chat is one whitelisted chat: a person (…@s.whatsapp.net), a group (…@g.us) or yourself.
 type Chat struct {
 	JID   string `yaml:"jid" json:"jid"` // a JID, or a phone number such as "+62 812-3456-7890"
 	Name  string `yaml:"name,omitempty" json:"name,omitempty"`
 	Agent `yaml:",inline"`
+}
+
+// Same reports whether two chats have the same settings.
+func (c Chat) Same(o Chat) bool {
+	cf, of := c.FooterOn(), o.FooterOn()
+	c.Footer, o.Footer = nil, nil
+	return c == o && cf == of
 }
 
 // IsGroup reports whether the chat is a group.

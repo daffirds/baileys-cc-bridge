@@ -263,7 +263,7 @@ func (s *session) start() error {
 	}
 	s.mcpPath = s.b.host.Register(&tools.Binding{
 		Chat: s.chat.JID, Self: s.b.me.ID, Owner: s.b.ownerName(), Workdir: workdir, WA: s.b.wa,
-		Resolve: s.b.resolve, LastIncoming: s.b.lastIncoming, Sent: s.b.sent, Log: s.log,
+		Resolve: s.b.resolve, LastIncoming: s.b.lastIncoming, Sent: s.b.sent, Footer: footer(s.chat), Log: s.log,
 	})
 	spec := engine.Spec{
 		Binary: bin, Workdir: workdir, Instructions: instructions(s.chat, s.b.me, s.b.ownerName()),
@@ -305,6 +305,17 @@ func (s *session) release() {
 		s.b.host.Unregister(s.mcpPath)
 		s.mcpPath = ""
 	}
+}
+
+// footer is what the chat's agent signs its messages with, "" when the chat turned it off.
+func footer(c *config.Chat) string {
+	switch {
+	case !c.FooterOn():
+		return ""
+	case c.Engine == config.EngineCodex:
+		return "Assisted by Codex"
+	}
+	return "Assisted by Claude"
 }
 
 // dirName turns a JID into a directory name: 6281234567890@s.whatsapp.net → 6281234567890_s.whatsapp.net.

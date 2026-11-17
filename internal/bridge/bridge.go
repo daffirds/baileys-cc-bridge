@@ -141,7 +141,7 @@ func (b *Bridge) apply(cfg *config.Config) {
 		case c == nil:
 			removed = append(removed, s)
 			delete(b.sessions, jid)
-		case *c != *s.given:
+		case !c.Same(*s.given):
 			s.given = c
 			s.update(c)
 			changed++

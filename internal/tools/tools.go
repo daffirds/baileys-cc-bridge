@@ -37,7 +37,17 @@ type Binding struct {
 	LastIncoming func(chat string) string
 	// Sent records what the agent sent, so the bridge never feeds it back as input.
 	Sent func(chat, id, text string)
-	Log  *slog.Logger
+	// Footer goes under every text and caption the agent sends, e.g. "Assisted by Claude"; "" for none.
+	Footer string
+	Log    *slog.Logger
+}
+
+// sign puts the footer under text.
+func (b *Binding) sign(text string) string {
+	if b.Footer == "" {
+		return text
+	}
+	return text + "\n\n_" + b.Footer + "_"
 }
 
 func newServer(b *Binding) *mcp.Server {
@@ -84,7 +94,7 @@ func (b *Binding) sendMessage(ctx context.Context, _ *mcp.CallToolRequest, in me
 	if err != nil {
 		return nil, nil, err
 	}
-	id, err := b.WA.SendText(ctx, chat, body, whatsapp.TextOptions{ReplyTo: in.ReplyTo, Mentions: mentions, MentionAll: in.MentionAll})
+	id, err := b.WA.SendText(ctx, chat, b.sign(body), whatsapp.TextOptions{ReplyTo: in.ReplyTo, Mentions: mentions, MentionAll: in.MentionAll})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -137,8 +147,12 @@ func (b *Binding) sendFile(ctx context.Context, _ *mcp.CallToolRequest, in fileI
 	case in.AsDocument:
 		kind = whatsapp.KindDocument
 	}
+	caption := in.Caption
+	if strings.TrimSpace(caption) != "" {
+		caption = b.sign(caption)
+	}
 	id, err := b.WA.SendMedia(ctx, chat, whatsapp.OutMedia{
-		Path: path, Kind: kind, Mimetype: mimetype, Caption: in.Caption, FileName: filepath.Base(path), ReplyTo: in.ReplyTo,
+		Path: path, Kind: kind, Mimetype: mimetype, Caption: caption, FileName: filepath.Base(path), ReplyTo: in.ReplyTo,
 	})
 	if err != nil {
 		return nil, nil, err

@@ -378,6 +378,16 @@ function AgentFields<T extends Agent>({ value, onChange, defaultDir }: { value: 
         </select>
       </Field>
       <ModelFields engine={engine} model={value.model ?? ''} effort={value.effort ?? ''} onChange={set} />
+      <Field label="Footer">
+        <span className="toggle">
+          <input
+            type="checkbox"
+            checked={value.footer !== false}
+            onChange={(e) => set({ footer: e.target.checked ? undefined : false })}
+          />
+          <i>Assisted by {engine === 'codex' ? 'Codex' : 'Claude'}</i>
+        </span>
+      </Field>
       <Field label="Working directory" wide>
         <DirInput value={value.workdir ?? ''} placeholder={defaultDir} onChange={(workdir) => set({ workdir })} />
       </Field>
