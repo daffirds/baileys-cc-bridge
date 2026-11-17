@@ -299,13 +299,19 @@ function Panel({ status }: { status: Status }) {
           <h2 className="section">Conversations</h2>
           <p className="muted">Each conversation has its own agent. Messages anywhere else are ignored.</p>
           {chats.length === 0 && (
-            <section className="card center muted">
-              No conversations yet. Add one with <b>New conversation</b>.
+            <section className="card empty">
+              <span className="choice-icon">
+                <Icon name="chat" size={22} />
+              </span>
+              <p className="muted">
+                No conversations yet. Add one with <b>New conversation</b>.
+              </p>
             </section>
           )}
-          {chats.map((c) => (
+          {chats.map((c, i) => (
             <ChatCard
               key={c.jid}
+              index={i}
               chat={c}
               account={account}
               state={state}
@@ -408,12 +414,37 @@ function Modal({ title, wide, onClose, children }: { title: string; wide?: boole
   );
 }
 
-function Field({ label, wide, children }: { label: string; wide?: boolean; children: ReactNode }) {
+function Field({ label, wide, group, children }: { label: string; wide?: boolean; group?: boolean; children: ReactNode }) {
+  const className = wide ? 'field wide' : 'field';
+  // A <label> would pass a click on its caption to the group's first button.
+  if (group) {
+    return (
+      <div className={className} role="group" aria-label={label}>
+        <span>{label}</span>
+        {children}
+      </div>
+    );
+  }
   return (
-    <label className={wide ? 'field wide' : 'field'}>
+    <label className={className}>
       <span>{label}</span>
       {children}
     </label>
+  );
+}
+
+// Segmented picks one of a few options, with a thumb that slides to the chosen one.
+function Segmented({ value, options, onChange }: { value: string; options: Record<string, string>; onChange: (v: string) => void }) {
+  const keys = Object.keys(options);
+  return (
+    <div className="segmented" role="radiogroup" style={{ '--n': keys.length, '--i': Math.max(0, keys.indexOf(value)) } as CSSProperties}>
+      <span className="thumb" />
+      {keys.map((k) => (
+        <button key={k} type="button" role="radio" aria-checked={k === value} className={k === value ? 'on' : ''} onClick={() => onChange(k)}>
+          {options[k]}
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -429,15 +460,9 @@ function AgentFields({ value, onChange, defaultDir }: { value: Chat; onChange: (
           <input value={value.name ?? ''} onChange={(e) => onChange({ ...value, name: e.target.value })} />
         </Field>
       )}
-      <Field label="Engine">
+      <Field label="Engine" group>
         {/* Models and efforts differ per engine, so switching starts from the new one's defaults. */}
-        <select value={engine} onChange={(e) => set({ engine: e.target.value, model: '', effort: '' })}>
-          {Object.entries(ENGINES).map(([v, label]) => (
-            <option key={v} value={v}>
-              {label}
-            </option>
-          ))}
-        </select>
+        <Segmented value={engine} options={ENGINES} onChange={(v) => v !== engine && set({ engine: v, model: '', effort: '' })} />
       </Field>
       <Field label="Permissions">
         <select value={value.autonomy || 'auto'} onChange={(e) => set({ autonomy: e.target.value })}>
@@ -453,6 +478,8 @@ function AgentFields({ value, onChange, defaultDir }: { value: Chat; onChange: (
         <span className="toggle">
           <input
             type="checkbox"
+            role="switch"
+            className="switch"
             checked={value.footer !== false}
             onChange={(e) => set({ footer: e.target.checked ? undefined : false })}
           />
@@ -730,7 +757,8 @@ function DirInput({ value, placeholder, onChange }: { value: string; placeholder
 
 // ChatCard shows a conversation folded to its name and main settings. The pencil opens it for
 // editing; the check saves the changes and folds it again, the cross drops them.
-function ChatCard({ chat, account, state, defaultDir, onSave, onRemove, onUnsaved }: {
+function ChatCard({ index, chat, account, state, defaultDir, onSave, onRemove, onUnsaved }: {
+  index: number;
   chat: Chat;
   account: Account;
   state: State;
@@ -770,7 +798,7 @@ function ChatCard({ chat, account, state, defaultDir, onSave, onRemove, onUnsave
     }
   };
   return (
-    <section className={open ? 'card chat open' : 'card chat'}>
+    <section className={open ? 'card chat open' : 'card chat'} style={{ '--i': index } as CSSProperties}>
       <div className="head">
         <Who chat={open ? draft : chat} me={account.me} />
         {!open && <Summary chat={chat} />}
@@ -867,38 +895,52 @@ function AddChatModal({ account, state, existing, onAdd, onClose }: {
   };
   return (
     <Modal title="New conversation" wide={step === 'agent'} onClose={onClose}>
-      {step === 'kind' && (
-        <div className="choices">
-          <button type="button" className="choice" onClick={() => go('group')}>
-            <b>Group</b>
-            <span className="muted">a group this number is in</span>
-          </button>
-          <button type="button" className="choice" onClick={() => go('person')}>
-            <b>Direct message</b>
-            <span className="muted">a person, or “Message yourself”</span>
-          </button>
-        </div>
-      )}
-      {step === 'group' && <GroupPicker have={have} onPick={pick} onBack={() => setStep('kind')} />}
-      {step === 'person' && <PersonPicker me={me} have={have} onPick={pick} onBack={() => setStep('kind')} />}
-      {step === 'agent' && chat && (
-        <>
-          <div className="row head">
-            <Who chat={chat} me={me} />
-          </div>
-          <AgentFields value={chat} defaultDir={`${state.chats_dir}/${dirName(chat.jid)}`} onChange={setChat} />
-          <PromptField chat={chat} account={account} state={state} onChange={setChat} />
-          {error && <p className="error small">{error}</p>}
-          <div className="row end">
-            <button type="button" onClick={() => setStep(from)} disabled={busy}>
-              Back
+      <div key={step} className="step">
+        {step === 'kind' && (
+          <div className="choices">
+            <button type="button" className="choice" onClick={() => go('group')}>
+              <span className="choice-icon">
+                <Icon name="group" size={22} />
+              </span>
+              <span className="choice-text">
+                <b>Group</b>
+                <span className="muted">a group this number is in</span>
+              </span>
+              <Icon name="chevron" size={18} />
             </button>
-            <button type="button" className="primary" onClick={() => add(chat)} disabled={busy}>
-              {busy ? 'Adding…' : 'Add conversation'}
+            <button type="button" className="choice" onClick={() => go('person')}>
+              <span className="choice-icon">
+                <Icon name="user" size={22} />
+              </span>
+              <span className="choice-text">
+                <b>Direct message</b>
+                <span className="muted">a person, or “Message yourself”</span>
+              </span>
+              <Icon name="chevron" size={18} />
             </button>
           </div>
-        </>
-      )}
+        )}
+        {step === 'group' && <GroupPicker have={have} onPick={pick} onBack={() => setStep('kind')} />}
+        {step === 'person' && <PersonPicker me={me} have={have} onPick={pick} onBack={() => setStep('kind')} />}
+        {step === 'agent' && chat && (
+          <>
+            <div className="row head">
+              <Who chat={chat} me={me} />
+            </div>
+            <AgentFields value={chat} defaultDir={`${state.chats_dir}/${dirName(chat.jid)}`} onChange={setChat} />
+            <PromptField chat={chat} account={account} state={state} onChange={setChat} />
+            {error && <p className="error small">{error}</p>}
+            <div className="row end">
+              <button type="button" onClick={() => setStep(from)} disabled={busy}>
+                Back
+              </button>
+              <button type="button" className="primary" onClick={() => add(chat)} disabled={busy}>
+                {busy ? 'Adding…' : 'Add conversation'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </Modal>
   );
 }
