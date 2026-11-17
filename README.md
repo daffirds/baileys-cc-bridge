@@ -134,7 +134,7 @@ Baileys side, and `scripts/build-npm.sh` builds the binary the npm package ships
 ## Why I made this
 
 Honestly, for my family haha. It lives on my home server and hangs out in our family group, telling
-everyone to chill when we start arguing 😅 My mom also uses it for her prayer reminders.
+everyone to chill when we start arguing 😅 My mom also uses it for our prayer reminders.
 
 ## License
 
