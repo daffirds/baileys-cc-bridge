@@ -9,7 +9,6 @@
 <p align="center">
   <img alt="macOS" src="https://img.shields.io/badge/OS-macOS-6e7681">
   <img alt="Claude Code and Codex" src="https://img.shields.io/badge/engines-Claude%20Code%20%7C%20Codex-d97757">
-  <img alt="Go 1.26" src="https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white">
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-25d366"></a>
 </p>
 
