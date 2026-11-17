@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { api, type Agent, type Chat, type Config, type Group, type Model, type Person, type State, type Status } from './api';
-import { Icon } from './icons';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { api, type Agent, type Chat, type Group, type Model, type Person, type State, type Status } from './api';
+import { Icon, type IconName } from './icons';
 
 const ENGINES: Record<string, string> = { claude: 'Claude', codex: 'Codex' };
 const AUTONOMY: Record<string, string> = {
@@ -185,87 +185,63 @@ function Linking({ status }: { status: Status }) {
   );
 }
 
-// useAutosave saves the config a moment after it stops changing. Saves run one at a time, each with
-// the latest config, so the file always ends up with what the page shows.
-function useAutosave(config: Config | null, initial: string | null) {
-  const latest = useRef(config);
-  latest.current = config;
-  const saved = useRef(initial);
-  const running = useRef(false);
-  const [phase, setPhase] = useState<'saved' | 'pending' | 'saving' | 'failed'>('saved');
-  const [error, setError] = useState('');
-  if (saved.current === null && initial !== null) saved.current = initial;
-
-  const flush = useCallback(async () => {
-    if (running.current) return; // the running loop takes the latest config itself
-    running.current = true;
-    try {
-      for (;;) {
-        const c = latest.current;
-        const json = JSON.stringify(c);
-        if (!c || json === saved.current) break;
-        setPhase('saving');
-        try {
-          await api.save(c);
-          saved.current = json;
-          setError('');
-        } catch (e) {
-          setError(message(e));
-          setPhase('failed');
-          return; // the next change tries again
-        }
-      }
-      setPhase('saved');
-    } finally {
-      running.current = false;
-    }
-  }, []);
-
-  const json = JSON.stringify(config);
-  const dirty = config !== null && saved.current !== null && json !== saved.current;
-  useEffect(() => {
-    if (!dirty) return;
-    setPhase((p) => (p === 'saving' ? p : 'pending'));
-    const t = setTimeout(flush, 700);
-    return () => clearTimeout(t);
-  }, [json, dirty, flush]);
-
-  // Leaving with a change not saved yet asks first.
-  useEffect(() => {
-    if (!dirty) return;
-    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
-    window.addEventListener('beforeunload', warn);
-    return () => window.removeEventListener('beforeunload', warn);
-  }, [dirty]);
-
-  return { phase: dirty && phase === 'saved' ? 'pending' : phase, error };
-}
-
+// Panel lists the linked number's conversations. A card opens with its pencil and saves with its
+// check; adding and removing a conversation save at once.
 function Panel({ status }: { status: Status }) {
   const [state, setState] = useState<State | null>(null);
-  const [config, setConfig] = useState<Config | null>(null);
-  const [initial, setInitial] = useState<string | null>(null);
+  const [chats, setChats] = useState<Chat[] | null>(null);
   const [error, setError] = useState('');
   const [leaving, setLeaving] = useState(false);
   const [adding, setAdding] = useState(false);
   const [removing, setRemoving] = useState<Chat | null>(null);
+  const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
+  const saved = useRef<Chat[]>([]);
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
+  const unsaved = useRef(new Set<string>()); // open cards with changes
 
   useEffect(() => {
     api.state().then(
       (s) => {
-        const c = { chats: s.config.chats ?? [] };
+        saved.current = s.config.chats ?? [];
         setState(s);
-        setConfig(c);
-        setInitial(JSON.stringify(c));
+        setChats(saved.current);
       },
       (e) => setError(message(e)),
     );
   }, []);
-  const save = useAutosave(config, initial);
+
+  // Leaving with a change not saved yet asks first.
+  useEffect(() => {
+    const warn = (e: BeforeUnloadEvent) => {
+      if (unsaved.current.size > 0) e.preventDefault();
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2400);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  // save applies a change to the saved conversations and writes them. Saves run one after another,
+  // each on top of the last, so cards saved at the same time all stick.
+  const save = (change: (cs: Chat[]) => Chat[], done: string) => {
+    const run = queue.current.then(async () => {
+      const next = change(saved.current);
+      await api.save({ chats: next });
+      saved.current = next;
+      setChats(next);
+      setToast({ id: Date.now(), text: done });
+    });
+    queue.current = run.catch(() => {});
+    return run;
+  };
 
   const me = status.me?.id ?? '';
   const who = status.me?.name ? `${status.me.name} · +${status.number}` : `+${status.number}`;
-  const setChat = (i: number, c: Chat) => config && setConfig({ chats: config.chats.map((x, j) => (j === i ? c : x)) });
+  const account = { me, owner: status.me?.name || 'the owner', number: status.number ?? '' };
 
   return (
     <main className="page">
@@ -283,78 +259,99 @@ function Panel({ status }: { status: Status }) {
           </p>
         </Brand>
         <div className="row">
-          {config && (
-            <span className={`save ${save.phase}`} title="The bridge applies changes between turns.">
-              {{ saved: 'All changes saved', pending: 'Unsaved…', saving: 'Saving…', failed: 'Not saved' }[save.phase]}
-            </span>
-          )}
           <button type="button" className="ghost" onClick={() => setLeaving(true)}>
             <Icon name="logout" size={16} />
             Log out
           </button>
-          <button type="button" className="primary" disabled={!config} onClick={() => setAdding(true)}>
+          <button type="button" className="primary" disabled={!chats} onClick={() => setAdding(true)}>
             <Icon name="plus" size={16} />
             New conversation
           </button>
         </div>
       </header>
       {error && <p className="error">{error}</p>}
-      {save.error && <p className="error">Could not save: {save.error}</p>}
       {leaving && <LogoutModal who={who} onClose={() => setLeaving(false)} />}
-      {removing && config && (
-        <Modal title={`Remove ${removing.name || removing.jid}?`} onClose={() => setRemoving(null)}>
-          <p>Its agent stops and its messages are ignored from now on.</p>
-          <p className="muted">Its history is kept: add it again and the agent picks up where it left off.</p>
-          <div className="row end">
-            <button type="button" onClick={() => setRemoving(null)}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="primary danger-fill"
-              onClick={() => {
-                setConfig({ chats: config.chats.filter((c) => c.jid !== removing.jid) });
-                setRemoving(null);
-              }}
-            >
-              Remove
-            </button>
-          </div>
-        </Modal>
+      {removing && (
+        <RemoveModal
+          chat={removing}
+          onRemove={() => save((cs) => cs.filter((c) => c.jid !== removing.jid), 'Removed')}
+          onClose={() => setRemoving(null)}
+        />
       )}
-      {adding && state && config && (
+      {adding && state && chats && (
         <AddChatModal
           me={me}
-          existing={config.chats}
+          existing={chats}
           chatsDir={state.chats_dir}
-          onAdd={(c) => setConfig({ chats: [...config.chats, c] })}
+          onAdd={(c) => save((cs) => [...cs, c], 'Added')}
           onClose={() => setAdding(false)}
         />
       )}
 
-      {state && config && (
+      {state && chats && (
         <>
           <h2 className="section">Conversations</h2>
           <p className="muted">Each conversation has its own agent. Messages anywhere else are ignored.</p>
-          {config.chats.length === 0 && (
+          {chats.length === 0 && (
             <section className="card center muted">
               No conversations yet. Add one with <b>New conversation</b>.
             </section>
           )}
-          {config.chats.map((c, i) => (
+          {chats.map((c) => (
             <ChatCard
               key={c.jid}
               chat={c}
-              account={{ me, owner: status.me?.name || 'the owner', number: status.number ?? '' }}
+              account={account}
               state={state}
               defaultDir={`${state.chats_dir}/${dirName(c.jid)}`}
-              onChange={(c) => setChat(i, c)}
+              onSave={(next) => save((cs) => cs.map((x) => (x.jid === c.jid ? next : x)), 'Saved')}
               onRemove={() => setRemoving(c)}
+              onUnsaved={(u) => {
+                if (u) unsaved.current.add(c.jid);
+                else unsaved.current.delete(c.jid);
+              }}
             />
           ))}
         </>
       )}
+      {toast && (
+        <div key={toast.id} className="toast" role="status">
+          <Icon name="check" size={14} />
+          {toast.text}
+        </div>
+      )}
     </main>
+  );
+}
+
+function RemoveModal({ chat, onRemove, onClose }: { chat: Chat; onRemove: () => Promise<void>; onClose: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const remove = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await onRemove();
+      onClose();
+    } catch (e) {
+      setError(message(e));
+      setBusy(false);
+    }
+  };
+  return (
+    <Modal title={`Remove ${chat.name || chat.jid}?`} onClose={onClose}>
+      <p>Its agent stops and its messages are ignored from now on.</p>
+      <p className="muted">Its history is kept: add it again and the agent picks up where it left off.</p>
+      {error && <p className="error small">{error}</p>}
+      <div className="row end">
+        <button type="button" onClick={onClose} disabled={busy}>
+          Cancel
+        </button>
+        <button type="button" className="primary danger-fill" onClick={remove} disabled={busy}>
+          {busy ? 'Removing…' : 'Remove'}
+        </button>
+      </div>
+    </Modal>
   );
 }
 
@@ -605,25 +602,105 @@ function DirInput({ value, placeholder, onChange }: { value: string; placeholder
   );
 }
 
-function ChatCard({ chat, account, state, defaultDir, onChange, onRemove }: {
+// ChatCard shows a conversation folded to its name and main settings. The pencil opens it for
+// editing; the check saves the changes and folds it again, the cross drops them.
+function ChatCard({ chat, account, state, defaultDir, onSave, onRemove, onUnsaved }: {
   chat: Chat;
   account: Account;
   state: State;
   defaultDir: string;
-  onChange: (c: Chat) => void;
+  onSave: (c: Chat) => Promise<void>;
   onRemove: () => void;
+  onUnsaved: (unsaved: boolean) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(chat);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const changed = open && JSON.stringify(draft) !== JSON.stringify(chat);
+  const report = useRef(onUnsaved);
+  report.current = onUnsaved;
+  useEffect(() => {
+    report.current(changed);
+  }, [changed]);
+  useEffect(() => () => report.current(false), []);
+
+  const edit = () => {
+    setDraft(chat);
+    setError('');
+    setOpen(true);
+  };
+  const done = async () => {
+    if (!changed) return setOpen(false);
+    setBusy(true);
+    setError('');
+    try {
+      await onSave(draft);
+      setOpen(false);
+    } catch (e) {
+      setError(message(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section className={open ? 'card chat open' : 'card chat'}>
+      <div className="head">
+        <Who chat={open ? draft : chat} me={account.me} />
+        {!open && <Summary chat={chat} />}
+        <div className="actions">
+          <IconButton icon="trash" label="Remove" tone="danger" onClick={onRemove} />
+          {open ? (
+            <>
+              <IconButton icon="x" label="Discard changes" onClick={() => setOpen(false)} disabled={busy} />
+              <IconButton icon="check" label="Save" tone="primary" onClick={done} disabled={busy} />
+            </>
+          ) : (
+            <IconButton icon="pencil" label="Edit" onClick={edit} />
+          )}
+        </div>
+      </div>
+      <div className="fold" inert={!open}>
+        <div>
+          <AgentFields value={draft} defaultDir={defaultDir} onChange={setDraft} />
+          <PromptField chat={draft} account={account} state={state} onChange={setDraft} />
+          {error && <p className="error small">Couldn’t save: {error}</p>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Summary sums up a folded card's agent: engine, model, and effort and permissions when set.
+function Summary({ chat }: { chat: Chat }) {
+  const engine = chat.engine || 'claude';
+  const { models } = useModels(engine);
+  const parts = [ENGINES[engine] ?? engine, chat.model ? (models?.find((m) => m.id === chat.model)?.name ?? chat.model) : 'Default model'];
+  if (chat.effort) parts.push(`${effortName(chat.effort)} effort`);
+  if (chat.autonomy === 'full') parts.push('Full access');
+  if (chat.autonomy === 'readonly') parts.push('Read-only');
+  return (
+    <div className="summary">
+      {parts.map((p) => (
+        <span key={p} className="pill">
+          {p}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function IconButton({ icon, label, tone, onClick, disabled }: {
+  icon: IconName;
+  label: string;
+  tone?: 'primary' | 'danger';
+  onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
-    <section className="card">
-      <div className="row head">
-        <Who chat={chat} me={account.me} />
-        <button type="button" className="ghost danger" onClick={onRemove}>
-          Remove
-        </button>
-      </div>
-      <AgentFields value={chat} defaultDir={defaultDir} onChange={onChange} />
-      <PromptField chat={chat} account={account} state={state} onChange={onChange} />
-    </section>
+    <button type="button" className={`icon-button ${tone ?? ''}`} title={label} aria-label={label} onClick={onClick} disabled={disabled}>
+      <Icon name={icon} size={18} />
+    </button>
   );
 }
 
@@ -632,12 +709,25 @@ function AddChatModal({ me, existing, chatsDir, onAdd, onClose }: {
   me: string;
   existing: Chat[];
   chatsDir: string;
-  onAdd: (c: Chat) => void;
+  onAdd: (c: Chat) => Promise<void>;
   onClose: () => void;
 }) {
   const [step, setStep] = useState<'kind' | 'group' | 'person' | 'agent'>('kind');
   const [from, setFrom] = useState<'group' | 'person'>('group');
   const [chat, setChat] = useState<Chat | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const add = async (c: Chat) => {
+    setBusy(true);
+    setError('');
+    try {
+      await onAdd(c);
+      onClose();
+    } catch (e) {
+      setError(message(e));
+      setBusy(false);
+    }
+  };
   const have = useMemo(() => new Set(existing.map((c) => c.jid)), [existing]);
   const pick = (c: Chat) => {
     setChat(c);
@@ -670,19 +760,13 @@ function AddChatModal({ me, existing, chatsDir, onAdd, onClose }: {
           </div>
           <AgentFields value={chat} defaultDir={`${chatsDir}/${dirName(chat.jid)}`} onChange={setChat} />
           <p className="muted small">The system prompt can be changed on the conversation’s card afterwards.</p>
+          {error && <p className="error small">{error}</p>}
           <div className="row end">
-            <button type="button" onClick={() => setStep(from)}>
+            <button type="button" onClick={() => setStep(from)} disabled={busy}>
               Back
             </button>
-            <button
-              type="button"
-              className="primary"
-              onClick={() => {
-                onAdd(chat);
-                onClose();
-              }}
-            >
-              Add conversation
+            <button type="button" className="primary" onClick={() => add(chat)} disabled={busy}>
+              {busy ? 'Adding…' : 'Add conversation'}
             </button>
           </div>
         </>
