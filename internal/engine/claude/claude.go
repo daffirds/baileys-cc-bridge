@@ -202,7 +202,6 @@ func (s *session) writeLine(v any) error {
 	if err != nil {
 		return err
 	}
-	s.spec.Transcript.Write("out", b)
 	s.writeMu.Lock()
 	defer s.writeMu.Unlock()
 	select {
@@ -270,7 +269,6 @@ func (s *session) read(r io.Reader) {
 		if len(strings.TrimSpace(string(line))) == 0 {
 			continue
 		}
-		s.spec.Transcript.Write("in", line)
 		var m streamLine
 		if err := json.Unmarshal(line, &m); err != nil {
 			continue

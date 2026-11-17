@@ -5,16 +5,13 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"io"
 	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 )
 
 // Spec describes how to start or resume a session.
@@ -30,7 +27,6 @@ type Spec struct {
 	ResumeID     string   // engine-native session id to resume; "" starts fresh
 	StateDir     string   // private per-session directory for prompt and config files
 	Log          *slog.Logger
-	Transcript   *TranscriptLog // receives raw protocol lines (optional)
 }
 
 // MCPServer is the bridge's WhatsApp tool server the session connects to.
@@ -99,36 +95,6 @@ func Find(name string) (string, error) {
 		}
 	}
 	return "", exec.ErrNotFound
-}
-
-// TranscriptLog appends raw protocol lines to a JSONL file for debugging.
-type TranscriptLog struct {
-	mu sync.Mutex
-	w  io.Writer
-}
-
-func NewTranscriptLog(w io.Writer) *TranscriptLog { return &TranscriptLog{w: w} }
-
-// Write records one protocol line; dir is "in" (from the CLI) or "out" (to the CLI).
-func (t *TranscriptLog) Write(dir string, line []byte) {
-	if t == nil || t.w == nil {
-		return
-	}
-	rec := struct {
-		T   string          `json:"t"`
-		Dir string          `json:"dir"`
-		Msg json.RawMessage `json:"msg"`
-	}{time.Now().Format(time.RFC3339Nano), dir, line}
-	if !json.Valid(line) {
-		rec.Msg, _ = json.Marshal(string(line))
-	}
-	b, err := json.Marshal(rec)
-	if err != nil {
-		return
-	}
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	_, _ = t.w.Write(append(b, '\n'))
 }
 
 // StderrTail keeps the last few KB of a process's stderr for error messages.

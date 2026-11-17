@@ -30,11 +30,10 @@ type session struct {
 	done   chan struct{}
 
 	// Owned by run().
-	proc       engine.Session
-	mcpPath    string
-	busy       bool
-	pending    []string // prompts not delivered yet because the CLI failed to start
-	transcript *os.File
+	proc    engine.Session
+	mcpPath string
+	busy    bool
+	pending []string // prompts not delivered yet because the CLI failed to start
 }
 
 func newSession(b *Bridge, chat *config.Chat) *session {
@@ -221,13 +220,12 @@ func (s *session) start() error {
 		Chat: s.chat.JID, Self: s.b.me.ID, Owner: s.b.ownerName(), Workdir: workdir, WA: s.b.wa,
 		Resolve: s.b.resolve, LastIncoming: s.b.lastIncoming, Sent: s.b.sent, Log: s.log,
 	})
-	s.transcript, _ = os.OpenFile(filepath.Join(s.dir, "transcript.jsonl"), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 	spec := engine.Spec{
 		Binary: bin, Workdir: workdir, Instructions: instructions(s.chat, s.b.me, s.b.ownerName()),
 		Model: a.Model, Effort: a.Effort, Autonomy: a.Autonomy,
 		MCP:     engine.MCPServer{Name: tools.ServerName, URL: s.b.baseURL + s.mcpPath},
 		AddDirs: []string{s.mediaDir()}, ResumeID: resume, StateDir: filepath.Join(s.dir, "engine"),
-		Log: s.log, Transcript: engine.NewTranscriptLog(s.transcript),
+		Log: s.log,
 	}
 	eng := s.b.engines[a.Engine]
 	p, err := eng.Start(s.ctx, spec)
@@ -261,10 +259,6 @@ func (s *session) release() {
 	if s.mcpPath != "" {
 		s.b.host.Unregister(s.mcpPath)
 		s.mcpPath = ""
-	}
-	if s.transcript != nil {
-		_ = s.transcript.Close()
-		s.transcript = nil
 	}
 }
 

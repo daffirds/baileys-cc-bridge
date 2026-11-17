@@ -53,7 +53,7 @@ func launch(ctx context.Context, spec engine.Spec) (*session, error) {
 		events: make(chan engine.Event, 256),
 		done:   make(chan struct{}),
 	}
-	s.rpc = &rpc{w: stdin, transcript: spec.Transcript, pending: map[int64]chan rpcResult{},
+	s.rpc = &rpc{w: stdin, pending: map[int64]chan rpcResult{},
 		onNotify: s.onNotify, onRequest: s.onRequest}
 	cmd.Stderr = &s.stderr
 	g, err := proc.Start(cmd)

@@ -16,8 +16,7 @@ import (
 
 // rpc is a minimal JSON-RPC 2.0 peer over newline-delimited stdio (codex app-server).
 type rpc struct {
-	w          io.Writer
-	transcript *engine.TranscriptLog
+	w io.Writer
 
 	writeMu sync.Mutex
 	seq     atomic.Int64
@@ -58,7 +57,6 @@ func (r *rpc) write(v any) error {
 	if err != nil {
 		return err
 	}
-	r.transcript.Write("out", b)
 	r.writeMu.Lock()
 	defer r.writeMu.Unlock()
 	_, err = r.w.Write(append(b, '\n'))
@@ -114,7 +112,6 @@ func (r *rpc) readLoop(rd io.Reader) {
 		if len(strings.TrimSpace(string(line))) == 0 {
 			continue
 		}
-		r.transcript.Write("in", line)
 		var m rpcMessage
 		if err := json.Unmarshal(line, &m); err != nil {
 			continue
