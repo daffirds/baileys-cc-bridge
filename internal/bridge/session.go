@@ -2,6 +2,7 @@ package bridge
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"log/slog"
 	"os"
@@ -257,6 +258,8 @@ func (s *session) start() error {
 	if err != nil {
 		return err
 	}
+	instr := instructions(s.chat, s.b.me, s.b.ownerName())
+	digest := fmt.Sprintf("%x", sha256.Sum256([]byte(instr)))[:16]
 	resume := s.b.state.engineID(s.chat.JID, a.Engine)
 	if resume != "" && a.Engine == config.EngineClaude && !claude.SessionExists(resume) {
 		resume = ""
@@ -266,11 +269,12 @@ func (s *session) start() error {
 		Resolve: s.b.resolve, LastIncoming: s.b.lastIncoming, Sent: s.b.sent, Footer: footer(s.chat), Log: s.log,
 	})
 	spec := engine.Spec{
-		Binary: bin, Workdir: workdir, Instructions: instructions(s.chat, s.b.me, s.b.ownerName()),
+		Binary: bin, Workdir: workdir, Instructions: instr,
 		Model: a.Model, Effort: a.Effort, Autonomy: a.Autonomy,
-		MCP:      engine.MCPServer{Name: tools.ServerName, URL: s.b.baseURL + s.mcpPath},
-		ResumeID: resume,
-		Log:      s.log,
+		MCP:        engine.MCPServer{Name: tools.ServerName, URL: s.b.baseURL + s.mcpPath},
+		ResumeID:   resume,
+		Reinstruct: s.b.state.instructions(s.chat.JID) != digest,
+		Log:        s.log,
 	}
 	eng := engines[a.Engine]
 	p, err := eng.Start(s.ctx, spec)
@@ -284,7 +288,7 @@ func (s *session) start() error {
 		return err
 	}
 	s.proc = p
-	if err := s.b.state.set(s.chat.JID, a.Engine, p.ID()); err != nil {
+	if err := s.b.state.set(s.chat.JID, a.Engine, p.ID(), digest); err != nil {
 		s.log.Warn("cannot save session state", "err", err)
 	}
 	s.log.Info("agent process started", "engine", a.Engine, "session", p.ID(), "resumed", spec.ResumeID != "", "workdir", workdir)

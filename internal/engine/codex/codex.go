@@ -31,6 +31,11 @@ func (Engine) Start(ctx context.Context, spec engine.Spec) (engine.Session, erro
 		_ = s.Close()
 		return nil, err
 	}
+	if spec.ResumeID != "" && spec.Reinstruct {
+		// A resumed thread keeps the developer instructions it started with, whatever
+		// thread/resume is given: the new ones go along with the next message.
+		s.reinstruct = spec.Instructions
+	}
 	return s, nil
 }
 
@@ -157,6 +162,7 @@ type session struct {
 	threadID string
 
 	mu            sync.Mutex
+	reinstruct    string // instructions to pass along with the next message
 	turnID        string // active turn, "" when idle
 	lastCompleted string
 	closed        bool
@@ -199,10 +205,28 @@ func textInput(text string) []map[string]any {
 	return []map[string]any{{"type": "text", "text": text}}
 }
 
-// Send steers the active turn, or starts a new one. turn/steer and turn/start can race with a turn
+// Send delivers text, preceded by the new instructions if the thread hasn't had them yet.
+func (s *session) Send(ctx context.Context, text string) error {
+	s.mu.Lock()
+	update := s.reinstruct
+	s.mu.Unlock()
+	if update != "" {
+		text = "<instructions>\nYour instructions changed. From now on, follow these instead of the ones you started with:\n\n" +
+			strings.TrimSpace(update) + "\n</instructions>\n\n" + text
+	}
+	err := s.send(ctx, text)
+	if err == nil && update != "" {
+		s.mu.Lock()
+		s.reinstruct = ""
+		s.mu.Unlock()
+	}
+	return err
+}
+
+// send steers the active turn, or starts a new one. turn/steer and turn/start can race with a turn
 // that is just starting or ending; both fail cleanly (an RPC error means the input was not taken),
 // so a short retry loop settles the race without double delivery.
-func (s *session) Send(ctx context.Context, text string) error {
+func (s *session) send(ctx context.Context, text string) error {
 	var lastErr error
 	for attempt := range 4 {
 		if attempt > 0 {

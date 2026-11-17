@@ -17,9 +17,11 @@ type state struct {
 }
 
 type chatState struct {
-	Engine   string    `json:"engine"`
-	EngineID string    `json:"engine_id"`
-	Updated  time.Time `json:"updated"`
+	Engine   string `json:"engine"`
+	EngineID string `json:"engine_id"`
+	// Instructions is a digest of the instructions the conversation last ran with.
+	Instructions string    `json:"instructions,omitempty"`
+	Updated      time.Time `json:"updated"`
 }
 
 func loadState(path string) *state {
@@ -43,10 +45,17 @@ func (s *state) engineID(chat, engine string) string {
 	return ""
 }
 
-func (s *state) set(chat, engine, id string) error {
+// instructions returns the digest of the instructions chat's conversation last ran with.
+func (s *state) instructions(chat string) string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.Chats[chat] = chatState{Engine: engine, EngineID: id, Updated: time.Now()}
+	return s.Chats[chat].Instructions
+}
+
+func (s *state) set(chat, engine, id, instructions string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Chats[chat] = chatState{Engine: engine, EngineID: id, Instructions: instructions, Updated: time.Now()}
 	b, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
 		return err

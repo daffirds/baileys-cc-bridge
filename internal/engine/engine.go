@@ -24,7 +24,9 @@ type Spec struct {
 	Autonomy     string // config.Autonomy*
 	MCP          MCPServer
 	ResumeID     string // engine-native session id to resume; "" starts fresh
-	Log          *slog.Logger
+	// Reinstruct: the conversation being resumed last ran with other instructions.
+	Reinstruct bool
+	Log        *slog.Logger
 }
 
 // MCPServer is the bridge's WhatsApp tool server the session connects to.
