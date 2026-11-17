@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="A WhatsApp group planning a trip. Ben says they still need a place to stay, you ask where to find a villa, and Mochi Bot, an AI agent with its own number, answers with three options and a PDF it made, signed Assisted by Claude. Rina thanks it. Next to the chat, the agent as a robot at its computer, reading the chat on its phone." src="assets/banner.svg" width="100%">
+  <img alt="A WhatsApp group planning a trip. Ben says they still need a place to stay, you ask if anyone knows a good villa, and Mochi Bot, an AI agent with its own number, answers with three options and a PDF it made, signed Assisted by Claude. Rina thanks it. Next to the chat, the agent as a robot at its computer, reading the chat on its phone." src="assets/banner.svg" width="100%">
 </p>
 
 <p align="center">
@@ -45,7 +45,7 @@ as you. Then add the chats it is in, each with its own engine, model, folder and
 In a group it reads along and joins in when it can help, no tag needed:
 
 > **Ben:** we still need a place to stay 😅<br>
-> **You:** hmm, any good villa in Ubud for 4?<br>
+> **You:** anyone know a good villa in Ubud for 4?<br>
 > **Mochi Bot:** Hey! Found 3 with a pool, all free that weekend 🏡 _Assisted by Claude_<br>
 > **Mochi Bot:** 📄 ubud-villas.pdf<br>
 > **Rina:** woah the 2nd one 😍 thanks Mochi Bot!

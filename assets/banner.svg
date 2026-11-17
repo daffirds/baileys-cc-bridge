@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="590" viewBox="0 0 1280 590" role="img" aria-labelledby="t d">
 <title id="t">baileys-cc-bridge</title>
-<desc id="d">A WhatsApp group planning a trip. Ben says they still need a place to stay, you ask where to find a villa, and Mochi Bot, an AI agent with its own number, answers with three options and a PDF it made, signed Assisted by Claude. Rina thanks it. Next to the chat, the agent as a robot at its computer, reading the chat on its phone.</desc>
+<desc id="d">A WhatsApp group planning a trip. Ben says they still need a place to stay, you ask if anyone knows a good villa, and Mochi Bot, an AI agent with its own number, answers with three options and a PDF it made, signed Assisted by Claude. Rina thanks it. Next to the chat, the agent as a robot at its computer, reading the chat on its phone.</desc>
 <rect x="1" y="1" width="1278" height="588" rx="24" fill="#0b141a" stroke="#233138" stroke-width="2"/>
 <text x="48" y="42" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" letter-spacing="2" fill="#8696a0">ON WHATSAPP</text>
 <text x="1232" y="42" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" letter-spacing="2" fill="#8696a0">ON YOUR MAC</text>
@@ -16,8 +16,8 @@
 <text x="112" y="149" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="12.5" font-weight="700" fill="#53bdeb">Ben</text>
 <text x="112" y="169" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14.5" fill="#e9edef">we still need a place to stay 😅</text>
 <text x="364" y="172" text-anchor="end" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" fill="#8696a0">10:40</text>
-<rect x="296" y="188" width="284" height="50" rx="10" fill="#005c4b"/>
-<text x="308" y="212" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14.5" fill="#e9edef">hmm, any good villa in Ubud for 4?</text>
+<rect x="260" y="188" width="320" height="50" rx="10" fill="#005c4b"/>
+<text x="272" y="212" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14.5" fill="#e9edef">anyone know a good villa in Ubud for 4?</text>
 <text x="570" y="230" text-anchor="end" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11"><tspan fill="#9cc6bb">10:42</tspan><tspan dx="4" fill="#53bdeb">✓✓</tspan></text>
 <circle cx="78" cy="262" r="14" fill="#d97757"/>
 <text x="78" y="267" text-anchor="middle" font-family="-apple-system, 'Segoe UI', 'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#0b141a">🤖</text>
