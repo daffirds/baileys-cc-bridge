@@ -37,7 +37,7 @@ type Binding struct {
 	LastIncoming func(chat string) string
 	// Sent records what the agent sent, so the bridge never feeds it back as input.
 	Sent func(chat, id, text string)
-	// Footer goes under every text and caption the agent sends, e.g. "🤖 Assisted by Claude"; "" for none.
+	// Footer goes under every text and caption the agent sends, e.g. "Assisted by Claude"; "" for none.
 	Footer string
 	// Jobs are the chat's: what schedule_job schedules comes back to this chat.
 	Jobs Jobs

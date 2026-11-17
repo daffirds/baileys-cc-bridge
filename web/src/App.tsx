@@ -551,7 +551,7 @@ function AgentFields({ value, onChange, defaultDir }: { value: Chat; onChange: (
             checked={value.footer !== false}
             onChange={(e) => set({ footer: e.target.checked ? undefined : false })}
           />
-          <i>🤖 Assisted by {engine === 'codex' ? 'Codex' : 'Claude'}</i>
+          <i>Assisted by {engine === 'codex' ? 'Codex' : 'Claude'}</i>
         </span>
       </Field>
       <Field label="Folder" wide>

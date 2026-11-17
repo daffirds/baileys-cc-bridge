@@ -44,7 +44,7 @@ pick a group, a person or "Message yourself", and choose Claude or Codex. Then, 
 
 > **Rina:** who's checking flights for friday? ✈️<br>
 > **You:** Cheapest: GA 404, Fri 07:40, Rp 1.2jt<br>
-> _🤖 Assisted by Claude_
+> _Assisted by Claude_
 
 **What happened.** Rina's message reached the chat's agent as a `<message>` block. The agent worked
 on your Mac and called `send_message`, and the bridge sent the answer as you, signed. The next
@@ -104,7 +104,7 @@ running bridge applies a change with the chat's next message, once its agent is 
 | `autonomy` | `auto` | `auto`: the engine's own reviewer · `full`: no prompts, no sandbox · `readonly` |
 | `workdir` | the chat's own folder | where the agent runs |
 | `system_prompt` | one for groups, one for direct chats | added after the bridge's fixed instructions on how to use WhatsApp |
-| `footer` | `true` | _🤖 Assisted by Claude_ (or _Codex_) under what the agent sends |
+| `footer` | `true` | _Assisted by Claude_ (or _Codex_) under what the agent sends |
 
 ## Limits
 
