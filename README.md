@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="A WhatsApp group where friends plan a trip. One member is Claude, an AI agent with its own number: asked to find a villa, it answers with three options and a PDF it made. Next to the chat, the agent as a robot working on its computer." src="assets/banner.svg" width="100%">
+  <img alt="A WhatsApp group planning a trip. You ask where to find a villa, and Mochi Bot, an AI agent with its own number, answers with three options and a PDF it made, signed Assisted by Claude. Rina thanks it. Next to the chat, the agent as a robot at its computer, reading the chat on its phone." src="assets/banner.svg" width="100%">
 </p>
 
 <p align="center">
@@ -36,12 +36,13 @@ baileys-cc-bridge install        # runs in the background from now on, and opens
 
 In the panel, scan the QR code with the phone of the number that will be the agent (WhatsApp →
 Settings → Linked devices). A spare number works best; your own works too, and then the agent writes
-as you. Pick the chats it talks in and choose Claude or Codex for each. Then message it:
+as you. Pick the chats it is in and choose Claude or Codex for each. In a group it reads along and
+joins in when it can help, no tag needed:
 
-> **Rina:** who's booking the villa? 🏝️<br>
-> **You:** @Claude find us one in Ubud for 4, under 3jt a night<br>
-> **Claude:** Found 3 with a pool, all free Fri–Sun 🏡<br>
-> **Claude:** 📄 ubud-villas.pdf
+> **You:** hmm, any good villa in Ubud for 4? under 3jt a night<br>
+> **Mochi Bot:** Hey! Found 3 with a pool, all free that weekend 🏡 _Assisted by Claude_<br>
+> **Mochi Bot:** 📄 ubud-villas.pdf<br>
+> **Rina:** woah the 2nd one looks amazing 😍 thanks Mochi Bot!
 
 ## How it works
 
