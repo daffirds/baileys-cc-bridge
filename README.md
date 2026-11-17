@@ -32,13 +32,19 @@ npm install -g baileys-cc-bridge
 baileys-cc-bridge install        # runs in the background from now on, and opens its panel
 ```
 
-In the panel, scan the QR code with the phone of the number that will be the agent (WhatsApp →
-Settings → Linked devices). A spare number works best; your own works too, and then the agent writes
-as you. Then add the chats it is in, each with its own engine, model, folder and prompt:
+The panel shows a QR code. Scan it from the phone whose number the agent will use (WhatsApp →
+Settings → Linked devices). A spare number works best. Your own works too, but then the agent writes
+as you.
+
+Then pick the chats it listens to; it ignores every other chat. Each one gets its own engine, model,
+folder and prompt:
 
 <p align="center">
   <img alt="The panel: the linked account, Mochi Bot, with Claude and Codex both ready, and three conversations. The open one, a group, shows its engine, permissions, model, effort, footer, folder and system prompt." src="assets/panel.png" width="760">
 </p>
+
+Before you add a group: anyone in it can ask the agent to do things on your Mac. Keep groups on
+`auto` or `readonly` ([Settings](#settings)), and use `full` only where you trust everyone.
 
 In a group it reads along and joins in when it can help, no tag needed:
 
@@ -98,8 +104,6 @@ reaches a chat's agent with the next message, once it is idle.
 ## Good to know
 
 - **Off means missed.** Messages that arrive while the bridge or the Mac is off are not replayed.
-- **Groups can steer it.** Anyone in a group the agent is in can ask it to use your Mac. Keep groups
-  on `auto` or `readonly`; use `full` where you trust everyone.
 - **One connection.** `run`, `login`, `logout` and `chats` each connect to WhatsApp, and only one can
   at a time.
 
