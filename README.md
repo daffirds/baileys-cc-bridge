@@ -36,8 +36,13 @@ baileys-cc-bridge install        # runs in the background from now on, and opens
 
 In the panel, scan the QR code with the phone of the number that will be the agent (WhatsApp →
 Settings → Linked devices). A spare number works best; your own works too, and then the agent writes
-as you. Pick the chats it is in and choose Claude or Codex for each. In a group it reads along and
-joins in when it can help, no tag needed:
+as you. Then add the chats it is in, each with its own engine, model, folder and prompt:
+
+<p align="center">
+  <img alt="The panel: the linked account, Mochi Bot, with Claude and Codex both ready, and three conversations. The open one, a group, shows its engine, permissions, model, effort, footer, folder and system prompt." src="assets/panel.png" width="760">
+</p>
+
+In a group it reads along and joins in when it can help, no tag needed:
 
 > **Ben:** we still need a place to stay 😅<br>
 > **You:** hmm, any good villa in Ubud for 4?<br>
