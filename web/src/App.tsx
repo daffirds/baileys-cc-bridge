@@ -286,9 +286,9 @@ function Panel({ status }: { status: Status }) {
       )}
       {adding && state && chats && (
         <AddChatModal
-          me={me}
+          account={account}
+          state={state}
           existing={chats}
-          chatsDir={state.chats_dir}
           onAdd={(c) => save((cs) => [...cs, c], 'Added')}
           onClose={() => setAdding(false)}
         />
@@ -830,14 +830,16 @@ function IconButton({ icon, label, tone, onClick, disabled }: {
   );
 }
 
-// AddChatModal adds a chat in three steps: group or direct message, which one, then its agent.
-function AddChatModal({ me, existing, chatsDir, onAdd, onClose }: {
-  me: string;
+// AddChatModal adds a chat in three steps: group or direct message, which one, then its agent and
+// system prompt.
+function AddChatModal({ account, state, existing, onAdd, onClose }: {
+  account: Account;
+  state: State;
   existing: Chat[];
-  chatsDir: string;
   onAdd: (c: Chat) => Promise<void>;
   onClose: () => void;
 }) {
+  const me = account.me;
   const [step, setStep] = useState<'kind' | 'group' | 'person' | 'agent'>('kind');
   const [from, setFrom] = useState<'group' | 'person'>('group');
   const [chat, setChat] = useState<Chat | null>(null);
@@ -884,8 +886,8 @@ function AddChatModal({ me, existing, chatsDir, onAdd, onClose }: {
           <div className="row head">
             <Who chat={chat} me={me} />
           </div>
-          <AgentFields value={chat} defaultDir={`${chatsDir}/${dirName(chat.jid)}`} onChange={setChat} />
-          <p className="muted small">The system prompt can be changed on the conversation’s card afterwards.</p>
+          <AgentFields value={chat} defaultDir={`${state.chats_dir}/${dirName(chat.jid)}`} onChange={setChat} />
+          <PromptField chat={chat} account={account} state={state} onChange={setChat} />
           {error && <p className="error small">{error}</p>}
           <div className="row end">
             <button type="button" onClick={() => setStep(from)} disabled={busy}>

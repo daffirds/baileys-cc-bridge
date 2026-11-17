@@ -713,7 +713,11 @@ button.primary.danger-fill {
 }
 
 .modal.wide {
-  max-width: 680px;
+  max-width: 780px;
+}
+
+.modal .vars {
+  top: 0;
 }
 
 .row.between {
