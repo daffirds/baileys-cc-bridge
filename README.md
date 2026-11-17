@@ -22,6 +22,26 @@ commands it runs and their output stay on your Mac.
 Each chat has its own session, so the agent remembers the conversation. If you message it while it
 is working, it reads that too, so you can change course halfway.
 
+## How it works
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/how-it-works.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/how-it-works-light.svg">
+    <img alt="Every message in the WhatsApp group goes into the agent's Claude Code session on your Mac; it stays quiet on Ben's. On yours it runs commands, and its tool calls come back as the chat's next bubbles: send_message as Mochi Bot's answer, send_file as the PDF, and react as the heart on Rina's thanks." src="assets/how-it-works-light.svg" width="100%">
+  </picture>
+</p>
+
+- The bridge is a linked device of the number, the way WhatsApp Web is, through
+  [Baileys](https://github.com/WhiskeySockets/Baileys).
+- Each chat you pick gets its own CLI session (`claude -p` or `codex app-server`), started by its
+  first message and resumed after a restart.
+- Every new message goes into that session, even while the agent is in the middle of a task.
+- The agent acts on WhatsApp through MCP tools tied to its chat. Nothing is sent unless the agent
+  calls one; the bridge never posts anything of its own.
+- The CLIs use their own logins, so the work counts against your Claude or ChatGPT plan. The bridge
+  talks only to WhatsApp and `127.0.0.1`.
+
 ## Get started
 
 You need macOS, Node 22.18+, and Claude Code and/or Codex installed and logged in.
@@ -53,26 +73,6 @@ top. In a direct chat every message is for it, and the chat's folder can be a pr
 > **You:** fix it and send me the diff<br>
 > **Mochi Bot:** 📄 token-expiry.diff<br>
 > **Mochi Bot:** all green now ✅ _Assisted by Claude_
-
-## How it works
-
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/how-it-works.svg">
-    <source media="(prefers-color-scheme: light)" srcset="assets/how-it-works-light.svg">
-    <img alt="Every message in the WhatsApp group goes into the agent's Claude Code session on your Mac; it stays quiet on Ben's. On yours it runs commands, and its tool calls come back as the chat's next bubbles: send_message as Mochi Bot's answer, send_file as the PDF, and react as the heart on Rina's thanks." src="assets/how-it-works-light.svg" width="100%">
-  </picture>
-</p>
-
-- The bridge is a linked device of the number, the way WhatsApp Web is, through
-  [Baileys](https://github.com/WhiskeySockets/Baileys).
-- Each chat you pick gets its own CLI session (`claude -p` or `codex app-server`), started by its
-  first message and resumed after a restart.
-- Every new message goes into that session, even while the agent is in the middle of a task.
-- The agent acts on WhatsApp through MCP tools tied to its chat. Nothing is sent unless the agent
-  calls one; the bridge never posts anything of its own.
-- The CLIs use their own logins, so the work counts against your Claude or ChatGPT plan. The bridge
-  talks only to WhatsApp and `127.0.0.1`.
 
 ## Tools
 
