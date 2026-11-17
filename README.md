@@ -133,8 +133,8 @@ Baileys side, and `scripts/build-npm.sh` builds the binary the npm package ships
 
 ## Why I made this
 
-For my family. It runs on my home server and sits in our family group, where it cools things down
-when an argument starts. My mom also has it remind her of prayer times.
+Honestly, for my family. It lives on my home server and hangs out in our family group, telling
+everyone to chill when we start arguing 😅 My mom also uses it for her prayer reminders.
 
 ## License
 
