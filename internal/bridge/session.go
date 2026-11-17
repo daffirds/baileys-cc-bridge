@@ -238,7 +238,7 @@ func (s *session) start() error {
 		ResumeID: resume,
 		Log:      s.log,
 	}
-	eng := s.b.engines[a.Engine]
+	eng := engines[a.Engine]
 	p, err := eng.Start(s.ctx, spec)
 	if err != nil && resume != "" {
 		s.log.Warn("could not resume; starting a fresh conversation", "err", err)

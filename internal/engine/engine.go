@@ -66,6 +66,18 @@ type Session interface {
 
 type Engine interface {
 	Start(ctx context.Context, spec Spec) (Session, error)
+	// Models asks the CLI at binary which models it offers. The first one, with ID "", is the
+	// CLI's own default.
+	Models(ctx context.Context, binary string) ([]Model, error)
+}
+
+// Model is a model a CLI offers.
+type Model struct {
+	ID            string   `json:"id"` // what the model setting takes; "" = the CLI's default
+	Name          string   `json:"name"`
+	Description   string   `json:"description,omitempty"`
+	Efforts       []string `json:"efforts,omitempty"`        // reasoning efforts it takes, lowest first
+	DefaultEffort string   `json:"default_effort,omitempty"` // "" when the CLI doesn't say
 }
 
 var ErrClosed = errors.New("session closed")

@@ -39,7 +39,6 @@ type Bridge struct {
 	baseURL string // where host is served, e.g. http://127.0.0.1:53123
 	log     *slog.Logger
 	state   *state
-	engines map[string]engine.Engine
 
 	mu       sync.Mutex
 	cfg      *config.Config      // replaced when config.yaml changes
@@ -56,12 +55,26 @@ type note struct {
 	own  bool // sent by an agent
 }
 
+var engines = map[string]engine.Engine{config.EngineClaude: claude.Engine{}, config.EngineCodex: codex.Engine{}}
+
+// Models lists the models the named engine's CLI offers, its default first (ID "").
+func Models(ctx context.Context, name string) ([]engine.Model, error) {
+	e, ok := engines[name]
+	if !ok {
+		return nil, fmt.Errorf("unknown engine %q", name)
+	}
+	bin, err := engine.Find(name)
+	if err != nil {
+		return nil, fmt.Errorf("%s CLI not found", name)
+	}
+	return e.Models(ctx, bin)
+}
+
 // New makes a bridge for cfg, which was loaded from cfgPath; Run reloads it when the file changes.
 func New(cfg *config.Config, cfgPath string, wa WhatsApp, me *whatsapp.Me, host *tools.Host, baseURL string, log *slog.Logger) *Bridge {
 	return &Bridge{
 		cfg: cfg, cfgPath: cfgPath, wa: wa, me: me, host: host, baseURL: baseURL, log: log,
 		state:    loadState(filepath.Join(app.Home(), "state.json")),
-		engines:  map[string]engine.Engine{config.EngineClaude: claude.Engine{}, config.EngineCodex: codex.Engine{}},
 		sessions: map[string]*session{},
 		notes:    newRing[note](5000),
 		last:     map[string]string{},
