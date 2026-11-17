@@ -149,16 +149,16 @@ function Linking({ status }: { status: Status }) {
   if (status.state === 'linking' && status.qr) {
     return (
       <section className="card center linking">
-        <h2>Link WhatsApp</h2>
+        <h2>Link your AI's number</h2>
+        <p className="muted">Scan with the WhatsApp number people will message. Claude or Codex answers from it.</p>
         <img className="qr" src={status.qr} alt="QR code to link WhatsApp" />
         <ol className="steps">
-          <li>Open WhatsApp on the phone with the number to use</li>
+          <li>Open WhatsApp on that phone</li>
           <li>
             Settings → <b>Linked devices</b> → <b>Link a device</b>
           </li>
-          <li>Point the phone at this code. It refreshes by itself.</li>
+          <li>Point it at this code. It refreshes by itself.</li>
         </ol>
-        <p className="muted small">The agents will read and write as that number.</p>
       </section>
     );
   }
