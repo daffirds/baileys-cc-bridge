@@ -22,6 +22,14 @@ export type Person = { jid: string; name?: string };
 // A model an engine's CLI offers; the first one, id "", is the CLI's own default.
 export type Model = { id: string; name: string; description?: string; efforts?: string[]; default_effort?: string };
 
+// Whether an engine's CLI can run agents here, and the command that fixes it when it can't.
+export type EngineHealth = {
+  name: string;
+  state: 'ready' | 'missing' | 'signed_out' | 'error';
+  detail?: string;
+  fix?: string;
+};
+
 export type Status = {
   state: 'starting' | 'linking' | 'connected' | 'logging_out';
   me?: { id: string; lid?: string; name?: string };
@@ -56,6 +64,7 @@ export const api = {
   groups: () => call<{ groups: Group[] }>('GET', '/api/groups'),
   people: () => call<{ people: Person[] }>('GET', '/api/people'),
   logout: () => call<{ ok: boolean }>('POST', '/api/logout'),
+  engines: (fresh = false) => call<{ engines: EngineHealth[] }>('GET', `/api/engines${fresh ? '?fresh=1' : ''}`),
   models: (engine: string) => call<{ models: Model[] }>('GET', `/api/models?engine=${encodeURIComponent(engine)}`),
   pickDir: (start: string) => call<{ path: string }>('POST', '/api/pick-dir', { start }),
   checkDir: (path: string) => call<{ ok: boolean; path: string; error?: string }>('POST', '/api/check-dir', { path }),

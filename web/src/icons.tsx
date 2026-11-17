@@ -33,6 +33,12 @@ const paths = {
     </>
   ),
   chevron: <path d="m9 6 6 6-6 6" />,
+  copy: (
+    <>
+      <rect x="9" y="9" width="11" height="11" rx="2.5" />
+      <path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15" />
+    </>
+  ),
   logout: (
     <>
       <path d="M9 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h3" />

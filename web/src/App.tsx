@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { api, type Agent, type Chat, type Group, type Model, type Person, type State, type Status } from './api';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { api, type Agent, type Chat, type EngineHealth, type Group, type Model, type Person, type State, type Status } from './api';
 import { Icon, type IconName } from './icons';
 
 const ENGINES: Record<string, string> = { claude: 'Claude', codex: 'Codex' };
@@ -243,6 +243,7 @@ function Panel({ status }: { status: Status }) {
           </p>
         </Brand>
         <div className="row">
+          <EngineStatus />
           <button type="button" className="ghost" onClick={() => setLeaving(true)}>
             <Icon name="logout" size={16} />
             Log out
@@ -311,6 +312,95 @@ function Panel({ status }: { status: Status }) {
         </div>
       )}
     </main>
+  );
+}
+
+const PROBLEM: Record<string, string> = { missing: 'Not installed', signed_out: 'Not logged in' };
+
+// EngineStatus shows whether Claude and Codex can run agents here: installed and logged in. One
+// that can't opens the command that fixes it. Coming back to the page checks again.
+function EngineStatus() {
+  const [list, setList] = useState<EngineHealth[] | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [open, setOpen] = useState('');
+  const check = useCallback((fresh: boolean) => {
+    setChecking(true);
+    api
+      .engines(fresh)
+      .then((r) => setList(r.engines))
+      .catch(() => {})
+      .finally(() => setChecking(false));
+  }, []);
+  useEffect(() => {
+    check(false);
+  }, [check]);
+  // Back from the terminal: the fix may have been run.
+  useEffect(() => {
+    if (!list?.some((e) => e.state !== 'ready')) return;
+    const focus = () => check(true);
+    window.addEventListener('focus', focus);
+    return () => window.removeEventListener('focus', focus);
+  }, [list, check]);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent ? e.key === 'Escape' : !(e.target as Element).closest('.engine')) setOpen('');
+    };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', close);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', close);
+    };
+  }, [open]);
+
+  return (
+    <div className="engines">
+      {Object.keys(ENGINES).map((name) => {
+        const h = list?.find((e) => e.name === name);
+        const state = h?.state ?? 'checking';
+        const ready = state === 'ready' || state === 'checking';
+        return (
+          <div key={name} className="engine">
+            <button
+              type="button"
+              className={`engine-pill ${state}`}
+              title={state === 'ready' ? 'Ready' : state === 'checking' ? 'Checking…' : undefined}
+              aria-expanded={ready ? undefined : open === name}
+              onClick={() => !ready && setOpen(open === name ? '' : name)}
+            >
+              <span className="engine-dot" />
+              {ENGINES[name]}
+            </button>
+            {open === name && h && !ready && (
+              <div className="popover" role="dialog" aria-label={ENGINES[name]}>
+                <b>{PROBLEM[h.state] ?? h.detail}</b>
+                {h.fix && <Command text={h.fix} />}
+                <button type="button" className="link" disabled={checking} onClick={() => check(true)}>
+                  {checking ? 'Checking…' : 'Check again'}
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Command shows a command to run in a terminal, with a button that copies it.
+function Command({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () =>
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  return (
+    <div className="command">
+      <code>{text}</code>
+      <IconButton icon={copied ? 'check' : 'copy'} label={copied ? 'Copied' : 'Copy'} onClick={copy} />
+    </div>
   );
 }
 
