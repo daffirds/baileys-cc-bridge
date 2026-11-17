@@ -59,11 +59,9 @@ type Chat struct {
 // IsGroup reports whether the chat is a group.
 func (c *Chat) IsGroup() bool { return strings.HasSuffix(c.JID, "@g.us") }
 
-// Load reads and validates the config at path, filling in each chat's engine and autonomy.
+// Load reads and validates the config at path, filling in each chat's engine and autonomy. A
+// missing file is an empty config: no chats yet.
 func Load(path string) (*Config, error) {
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		return nil, fmt.Errorf("no config at %s: create it with `%s ui` (or see config.example.yaml)", path, app.Name)
-	}
 	c, err := Read(path)
 	if err != nil {
 		return nil, err

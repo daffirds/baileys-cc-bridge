@@ -2,6 +2,7 @@ package webui
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"os"
@@ -10,84 +11,118 @@ import (
 	"strings"
 	"time"
 
+	"github.com/skip2/go-qrcode"
+
 	"github.com/daffirds/bailey-cc-bridge/internal/app"
 	"github.com/daffirds/bailey-cc-bridge/internal/config"
 	"github.com/daffirds/bailey-cc-bridge/internal/whatsapp"
 )
 
-// state is everything the page needs: the config as written, the linked account and the groups
-// last fetched from WhatsApp.
-func (s *server) state(w http.ResponseWriter, _ *http.Request) {
-	number, _ := whatsapp.Linked()
-	cfg, path, me := &config.Config{}, "", ""
-	if number != "" {
-		var err error
-		path, me = config.Path(number), number+"@s.whatsapp.net"
-		if cfg, err = config.Read(path); err != nil {
-			writeErr(w, http.StatusInternalServerError, err)
-			return
+var errNotConnected = errors.New("not connected to WhatsApp yet")
+
+// status is what the panel polls: where the WhatsApp side stands, with the QR code to scan (as an
+// image) while linking.
+func (s *server) status(w http.ResponseWriter, _ *http.Request) {
+	st := s.account.Status()
+	out := struct {
+		Status
+		Number string `json:"number,omitempty"`
+		QR     string `json:"qr,omitempty"`
+	}{Status: st}
+	if st.Me != nil {
+		out.Number = user(st.Me.ID)
+	}
+	if st.QR != "" {
+		if png, err := qrcode.Encode(st.QR, qrcode.Medium, 320); err == nil {
+			out.QR = "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)
 		}
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
+// connected returns the linked number and its config path, or fails while there is none.
+func (s *server) connected() (number, path string, err error) {
+	st := s.account.Status()
+	if st.State != "connected" || st.Me == nil {
+		return "", "", errNotConnected
+	}
+	return user(st.Me.ID), st.ConfigPath, nil
+}
+
+// state is what the panel edits: the linked number's config as written.
+func (s *server) state(w http.ResponseWriter, _ *http.Request) {
+	number, path, err := s.connected()
+	if err != nil {
+		writeErr(w, http.StatusConflict, err)
+		return
+	}
+	cfg, err := config.Read(path)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, err)
+		return
 	}
 	if cfg.Chats == nil {
 		cfg.Chats = []config.Chat{}
 	}
-	groups, updated := whatsapp.CachedGroups()
-	if groups == nil {
-		groups = []whatsapp.Group{}
-	}
-	when := ""
-	if !updated.IsZero() {
-		when = updated.Format(time.RFC3339)
-	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"config_path":    path,
-		"chats_dir":      filepath.Join(app.AccountDir(number), "chats"),
-		"linked":         number,
-		"me":             me,
-		"config":         cfg,
-		"groups":         groups,
-		"groups_updated": when,
+		"config_path": path,
+		"chats_dir":   filepath.Join(app.AccountDir(number), "chats"),
+		"config":      cfg,
 	})
 }
 
+// saveConfig writes the config; the running bridge picks it up within seconds.
 func (s *server) saveConfig(w http.ResponseWriter, r *http.Request) {
+	_, path, err := s.connected()
+	if err != nil {
+		writeErr(w, http.StatusConflict, err)
+		return
+	}
 	var c config.Config
 	if err := readJSON(r, &c); err != nil {
 		writeErr(w, http.StatusBadRequest, err)
 		return
 	}
-	number, ok := whatsapp.Linked()
-	if !ok {
-		writeErr(w, http.StatusConflict, errors.New("link WhatsApp first: `bailey-cc-bridge login`"))
-		return
-	}
-	if err := config.Save(config.Path(number), &c); err != nil {
+	if err := config.Save(path, &c); err != nil {
 		writeErr(w, http.StatusBadRequest, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
-// refreshGroups connects to WhatsApp for a fresh group list. While the bridge runs it holds the
-// connection, and the cached list (fetched when it started) has to do.
-func (s *server) refreshGroups(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Minute)
+// groups lists the linked number's groups, fresh from WhatsApp.
+func (s *server) groups(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), time.Minute)
 	defer cancel()
-	wa, _, err := whatsapp.Connect(ctx, whatsapp.Options{Log: s.log})
-	if errors.Is(err, whatsapp.ErrBusy) {
-		err = errors.New("the bridge is running and holds the WhatsApp connection; this list is from when it started")
-	}
-	if err != nil {
-		writeErr(w, http.StatusConflict, err)
-		return
-	}
-	defer wa.Close()
-	groups, err := wa.Groups(ctx)
+	groups, err := s.account.Groups(ctx)
 	if err != nil {
 		writeErr(w, http.StatusBadGateway, err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"groups": groups, "groups_updated": time.Now().Format(time.RFC3339)})
+	if groups == nil {
+		groups = []whatsapp.Group{}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"groups": groups})
+}
+
+// people lists the people the linked number knows by name, to pick a direct chat from.
+func (s *server) people(w http.ResponseWriter, _ *http.Request) {
+	number, _, err := s.connected()
+	if err != nil {
+		writeErr(w, http.StatusConflict, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"people": whatsapp.People(number)})
+}
+
+// logout unlinks the number; the panel then shows a QR code for the next one.
+func (s *server) logout(w http.ResponseWriter, _ *http.Request) {
+	if _, _, err := s.connected(); err != nil {
+		writeErr(w, http.StatusConflict, err)
+		return
+	}
+	s.account.Logout()
+	writeJSON(w, http.StatusOK, map[string]bool{"ok": true})
 }
 
 // pickDir shows the macOS folder chooser and returns the chosen path ("" when cancelled).
@@ -138,4 +173,11 @@ func (s *server) checkDir(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true, "path": dir})
 	}
+}
+
+// user is the part of a JID before the @ (and before a device suffix).
+func user(jid string) string {
+	u, _, _ := strings.Cut(jid, "@")
+	u, _, _ = strings.Cut(u, ":")
+	return u
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { api, type Agent, type Chat, type Config, type Group, type State } from './api';
+import { api, type Agent, type Chat, type Config, type Group, type State, type Status } from './api';
 
 const ENGINES = ['claude', 'codex'];
 const AUTONOMY: Record<string, string> = {
@@ -18,18 +18,84 @@ function clean<T extends object>(o: T): T {
 // Mirrors the Go side: the directory name a chat's files live under.
 const dirName = (jid: string) => jid.replace(/[^A-Za-z0-9.-]/g, '_');
 
+// App follows where WhatsApp stands: a QR code to scan while no number is linked, the editor once
+// one is. A logout or a new link switches the page by itself.
 export function App() {
+  const [status, setStatus] = useState<Status | null>(null);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let alive = true;
+    const tick = () =>
+      api.status().then(
+        (s) => alive && (setStatus(s), setError('')),
+        (e) => alive && setError(message(e)),
+      );
+    tick();
+    const t = setInterval(tick, 2000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, []);
+
+  if (!status) {
+    return <main className="page">{error ? <p className="error">{error}</p> : <p className="muted">Loading…</p>}</main>;
+  }
+  if (status.state === 'connected' && status.number) {
+    return <Panel key={status.number} status={status} />;
+  }
+  return (
+    <main className="page">
+      <header className="top">
+        <h1>bailey-cc-bridge</h1>
+      </header>
+      <Linking status={status} />
+      {error && <p className="error">{error}</p>}
+    </main>
+  );
+}
+
+function Linking({ status }: { status: Status }) {
+  if (status.state === 'logging_out') {
+    return <section className="card center muted">Logging out…</section>;
+  }
+  if (status.state === 'linking' && status.qr) {
+    return (
+      <section className="card center linking">
+        <h2>Link WhatsApp</h2>
+        <img className="qr" src={status.qr} alt="QR code to link WhatsApp" />
+        <ol className="steps">
+          <li>Open WhatsApp on the phone with the number to use</li>
+          <li>
+            Settings → <b>Linked devices</b> → <b>Link a device</b>
+          </li>
+          <li>Point the phone at this code. It refreshes by itself.</li>
+        </ol>
+        <p className="muted small">The agents will read and write as that number.</p>
+      </section>
+    );
+  }
+  return (
+    <section className="card center">
+      <p className="muted">Connecting to WhatsApp…</p>
+      {status.error && <p className="error small">{status.error}</p>}
+    </section>
+  );
+}
+
+function Panel({ status }: { status: Status }) {
   const [state, setState] = useState<State | null>(null);
   const [config, setConfig] = useState<Config | null>(null);
   const [saved, setSaved] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     api.state().then(
       (s) => {
-        const c = { defaults: s.config.defaults ?? {}, chats: s.config.chats ?? [] };
+        const c = { chats: s.config.chats ?? [] };
         setState(s);
         setConfig(c);
         setSaved(JSON.stringify(c));
@@ -38,25 +104,24 @@ export function App() {
     );
   }, []);
 
-  if (!state || !config) {
-    return <main className="page">{error ? <p className="error">{error}</p> : <p className="muted">Loading…</p>}</main>;
-  }
-
-  const dirty = JSON.stringify(config) !== saved;
+  const me = status.me?.id ?? '';
+  const who = status.me?.name ? `${status.me.name} · +${status.number}` : `+${status.number}`;
+  const dirty = config !== null && JSON.stringify(config) !== saved;
   const save = async () => {
+    if (!config) return;
     setBusy(true);
     setError('');
     try {
       await api.save(config);
       setSaved(JSON.stringify(config));
-      setNotice('Saved. A running bridge picks it up within a few seconds.');
+      setNotice('Saved. The bridge picks it up within a few seconds.');
     } catch (e) {
       setError(message(e));
     } finally {
       setBusy(false);
     }
   };
-  const setChat = (i: number, c: Chat) => setConfig({ ...config, chats: config.chats.map((x, j) => (j === i ? c : x)) });
+  const setChat = (i: number, c: Chat) => config && setConfig({ chats: config.chats.map((x, j) => (j === i ? c : x)) });
 
   return (
     <main className="page">
@@ -64,49 +129,97 @@ export function App() {
         <div>
           <h1>bailey-cc-bridge</h1>
           <p className="muted">
-            {state.linked ? (
+            WhatsApp <b>{who}</b>
+            {state && (
               <>
-                WhatsApp <b>+{state.linked}</b>
+                {' '}
+                · <code>{state.config_path}</code>
               </>
-            ) : (
-              <span className="warn">
-                Not linked: run <code>bailey-cc-bridge login</code>
-              </span>
-            )}{' '}
-            · <code>{state.config_path}</code>
+            )}
           </p>
         </div>
-        <button className="primary" disabled={!dirty || busy} onClick={save}>
-          {busy ? 'Saving…' : dirty ? 'Save' : 'Saved'}
-        </button>
+        <div className="row">
+          <button type="button" className="ghost danger" onClick={() => setLeaving(true)}>
+            Log out
+          </button>
+          <button className="primary" disabled={!dirty || busy} onClick={save}>
+            {busy ? 'Saving…' : dirty ? 'Save' : 'Saved'}
+          </button>
+        </div>
       </header>
       {error && <p className="error">{error}</p>}
       {notice && !dirty && <p className="notice">{notice}</p>}
+      {leaving && <LogoutModal who={who} onClose={() => setLeaving(false)} />}
 
-      <section className="card">
-        <h2>Defaults</h2>
-        <AgentFields value={config.defaults} onChange={(d) => setConfig({ ...config, defaults: d })} />
-      </section>
-
-      <h2 className="section">Chats</h2>
-      <p className="muted">Every message in these chats goes to that chat’s own agent session. Everything else is ignored.</p>
-      {config.chats.map((c, i) => (
-        <ChatCard
-          key={c.jid}
-          chat={c}
-          defaults={config.defaults}
-          state={state}
-          onChange={(c) => setChat(i, c)}
-          onRemove={() => setConfig({ ...config, chats: config.chats.filter((_, j) => j !== i) })}
-        />
-      ))}
-      <AddChat
-        state={state}
-        existing={config.chats}
-        onAdd={(c) => setConfig({ ...config, chats: [...config.chats, c] })}
-        onGroups={(groups, updated) => setState({ ...state, groups, groups_updated: updated })}
-      />
+      {state && config && (
+        <>
+          <h2 className="section">Chats</h2>
+          <p className="muted">Every message in these chats goes to that chat’s own agent session. Everything else is ignored.</p>
+          {config.chats.map((c, i) => (
+            <ChatCard
+              key={c.jid}
+              chat={c}
+              me={me}
+              defaultDir={`${state.chats_dir}/${dirName(c.jid)}`}
+              onChange={(c) => setChat(i, c)}
+              onRemove={() => setConfig({ chats: config.chats.filter((_, j) => j !== i) })}
+            />
+          ))}
+          <AddChat me={me} existing={config.chats} onAdd={(c) => setConfig({ chats: [...config.chats, c] })} />
+        </>
+      )}
     </main>
+  );
+}
+
+function LogoutModal({ who, onClose }: { who: string; onClose: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const logout = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await api.logout(); // the page switches to the QR code once the bridge has let go
+    } catch (e) {
+      setError(message(e));
+      setBusy(false);
+    }
+  };
+  return (
+    <Modal title="Log out of WhatsApp?" onClose={onClose}>
+      <p>
+        This unlinks the bridge from <b>{who}</b> and stops its agents.
+      </p>
+      <p className="muted">
+        Its chats and conversations stay saved and come back if you link this number again. Next you can scan a QR code to link
+        any number.
+      </p>
+      {error && <p className="error small">{error}</p>}
+      <div className="row end">
+        <button type="button" onClick={onClose} disabled={busy}>
+          Cancel
+        </button>
+        <button type="button" className="primary danger-fill" onClick={logout} disabled={busy}>
+          {busy ? 'Logging out…' : 'Log out'}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [onClose]);
+  return (
+    <div className="overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal" role="dialog" aria-modal="true" aria-label={title}>
+        <h2>{title}</h2>
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -119,20 +232,12 @@ function Field({ label, wide, children }: { label: string; wide?: boolean; child
   );
 }
 
-// AgentFields edits the defaults (no `defaults` given) or a chat's overrides of them.
-function AgentFields<T extends Agent>({ value, onChange, defaults, defaultDir }: {
-  value: T;
-  onChange: (v: T) => void;
-  defaults?: Agent;
-  defaultDir?: string;
-}) {
+function AgentFields<T extends Agent>({ value, onChange, defaultDir }: { value: T; onChange: (v: T) => void; defaultDir: string }) {
   const set = (patch: Partial<Agent>) => onChange(clean({ ...value, ...patch }));
-  const inherited = (v: string | undefined, fallback: string) => `default (${v || fallback})`;
   return (
     <div className="grid">
       <Field label="Engine">
-        <select value={defaults ? (value.engine ?? '') : value.engine || 'claude'} onChange={(e) => set({ engine: e.target.value })}>
-          {defaults && <option value="">{inherited(defaults.engine, 'claude')}</option>}
+        <select value={value.engine || 'claude'} onChange={(e) => set({ engine: e.target.value })}>
           {ENGINES.map((e) => (
             <option key={e} value={e}>
               {e}
@@ -141,8 +246,7 @@ function AgentFields<T extends Agent>({ value, onChange, defaults, defaultDir }:
         </select>
       </Field>
       <Field label="Autonomy">
-        <select value={defaults ? (value.autonomy ?? '') : value.autonomy || 'auto'} onChange={(e) => set({ autonomy: e.target.value })}>
-          {defaults && <option value="">{inherited(defaults.autonomy, 'auto')}</option>}
+        <select value={value.autonomy || 'auto'} onChange={(e) => set({ autonomy: e.target.value })}>
           {Object.entries(AUTONOMY).map(([v, label]) => (
             <option key={v} value={v}>
               {label}
@@ -151,39 +255,20 @@ function AgentFields<T extends Agent>({ value, onChange, defaults, defaultDir }:
         </select>
       </Field>
       <Field label="Model">
-        <input
-          value={value.model ?? ''}
-          placeholder={defaults ? inherited(defaults.model, 'CLI default') : 'CLI default'}
-          onChange={(e) => set({ model: e.target.value })}
-        />
+        <input value={value.model ?? ''} placeholder="CLI default" onChange={(e) => set({ model: e.target.value })} />
       </Field>
       <Field label="Effort">
-        <input
-          value={value.effort ?? ''}
-          placeholder={defaults ? inherited(defaults.effort, 'model default') : 'model default'}
-          onChange={(e) => set({ effort: e.target.value })}
-        />
-      </Field>
-      <Field label="Idle timeout">
-        <input
-          value={value.idle_timeout ?? ''}
-          placeholder={defaults ? inherited(defaults.idle_timeout, '30m') : '30m'}
-          onChange={(e) => set({ idle_timeout: e.target.value })}
-        />
+        <input value={value.effort ?? ''} placeholder="model default" onChange={(e) => set({ effort: e.target.value })} />
       </Field>
       <Field label="Working directory" wide>
-        <DirInput
-          value={value.workdir ?? ''}
-          placeholder={defaults ? defaults.workdir || defaultDir || '' : 'each chat’s own folder'}
-          onChange={(workdir) => set({ workdir })}
-        />
+        <DirInput value={value.workdir ?? ''} placeholder={defaultDir} onChange={(workdir) => set({ workdir })} />
       </Field>
-      <Field label="Prompt" wide>
+      <Field label="System prompt" wide>
         <textarea
           rows={3}
-          value={value.prompt ?? ''}
-          placeholder={defaults ? (defaults.prompt ? 'default prompt' : 'none') : 'appended to every chat’s instructions'}
-          onChange={(e) => set({ prompt: e.target.value })}
+          value={value.system_prompt ?? ''}
+          placeholder="the built-in one"
+          onChange={(e) => set({ system_prompt: e.target.value })}
         />
       </Field>
     </div>
@@ -221,7 +306,7 @@ function DirInput({ value, placeholder, onChange }: { value: string; placeholder
           Choose…
         </button>
         {value && (
-          <button type="button" className="ghost" title="Use the default" onClick={() => onChange('')}>
+          <button type="button" className="ghost" title="Use the chat’s own folder" onClick={() => onChange('')}>
             ×
           </button>
         )}
@@ -231,14 +316,14 @@ function DirInput({ value, placeholder, onChange }: { value: string; placeholder
   );
 }
 
-function ChatCard({ chat, defaults, state, onChange, onRemove }: {
+function ChatCard({ chat, me, defaultDir, onChange, onRemove }: {
   chat: Chat;
-  defaults: Agent;
-  state: State;
+  me: string;
+  defaultDir: string;
   onChange: (c: Chat) => void;
   onRemove: () => void;
 }) {
-  const kind = chat.jid.endsWith('@g.us') ? 'group' : chat.jid === state.me ? 'you' : 'person';
+  const kind = chat.jid.endsWith('@g.us') ? 'group' : chat.jid === me ? 'you' : 'person';
   return (
     <section className="card">
       <div className="row head">
@@ -249,45 +334,43 @@ function ChatCard({ chat, defaults, state, onChange, onRemove }: {
           Remove
         </button>
       </div>
-      <AgentFields value={chat} defaults={defaults} defaultDir={`${state.chats_dir}/${dirName(chat.jid)}/work`} onChange={onChange} />
+      <AgentFields value={chat} defaultDir={defaultDir} onChange={onChange} />
     </section>
   );
 }
 
-function AddChat({ state, existing, onAdd, onGroups }: {
-  state: State;
-  existing: Chat[];
-  onAdd: (c: Chat) => void;
-  onGroups: (groups: Group[], updated: string) => void;
-}) {
+function AddChat({ me, existing, onAdd }: { me: string; existing: Chat[]; onAdd: (c: Chat) => void }) {
   const [q, setQ] = useState('');
+  const [groups, setGroups] = useState<Group[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const have = useMemo(() => new Set(existing.map((c) => c.jid)), [existing]);
   const needle = q.trim().toLowerCase();
   const digits = q.replace(/[\s+\-().]/g, '');
   const number = /^\d{7,15}$/.test(digits) ? digits : '';
-  const groups = useMemo(
-    () => state.groups.filter((g) => !have.has(g.jid) && g.name.toLowerCase().includes(needle)).slice(0, 8),
-    [state.groups, have, needle],
+  const matches = useMemo(
+    () => (groups ?? []).filter((g) => !have.has(g.jid) && g.name.toLowerCase().includes(needle)).slice(0, 8),
+    [groups, have, needle],
   );
-  const add = (c: Chat) => {
-    onAdd(c);
-    setQ('');
-  };
-  const refresh = async () => {
+  const load = async () => {
     setBusy(true);
     setErr('');
     try {
-      const r = await api.refreshGroups();
-      onGroups(r.groups, r.groups_updated);
+      setGroups((await api.groups()).groups);
     } catch (e) {
       setErr(message(e));
     } finally {
       setBusy(false);
     }
   };
-  const showMe = state.me && !have.has(state.me) && (!needle || 'you message yourself me'.includes(needle));
+  useEffect(() => {
+    load();
+  }, []);
+  const add = (c: Chat) => {
+    onAdd(c);
+    setQ('');
+  };
+  const showMe = me && !have.has(me) && (!needle || 'you message yourself me'.includes(needle));
   return (
     <section className="card add">
       <h3>Add a chat</h3>
@@ -295,7 +378,7 @@ function AddChat({ state, existing, onAdd, onGroups }: {
       <ul className="options">
         {showMe && (
           <li>
-            <button type="button" onClick={() => add({ jid: state.me, name: 'Me' })}>
+            <button type="button" onClick={() => add({ jid: me, name: 'Me' })}>
               You <span className="muted">your “Message yourself” chat</span>
             </button>
           </li>
@@ -307,7 +390,7 @@ function AddChat({ state, existing, onAdd, onGroups }: {
             </button>
           </li>
         )}
-        {groups.map((g) => (
+        {matches.map((g) => (
           <li key={g.jid}>
             <button type="button" onClick={() => add({ jid: g.jid, name: g.name })}>
               {g.name} <span className="muted">{g.size} members</span>
@@ -316,9 +399,9 @@ function AddChat({ state, existing, onAdd, onGroups }: {
         ))}
       </ul>
       <p className="muted small">
-        {state.groups.length} groups{state.groups_updated ? `, listed ${new Date(state.groups_updated).toLocaleString()}` : ' listed so far'} ·{' '}
-        <button type="button" className="link" disabled={busy} onClick={refresh}>
-          {busy ? 'Refreshing…' : 'Refresh from WhatsApp'}
+        {groups ? `${groups.length} groups` : 'Loading groups…'} ·{' '}
+        <button type="button" className="link" disabled={busy} onClick={load}>
+          {busy ? 'Refreshing…' : 'Refresh'}
         </button>
       </p>
       {err && <p className="error small">{err}</p>}

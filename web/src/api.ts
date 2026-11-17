@@ -1,4 +1,5 @@
-// The JSON API served by `bailey-cc-bridge ui`. Every call carries the token from the link (#t=…).
+// The JSON API of the panel, served by `bailey-cc-bridge run`. Every call carries the token from the
+// panel's link (#t=…).
 
 export type Agent = {
   engine?: string;
@@ -6,24 +7,30 @@ export type Agent = {
   effort?: string;
   autonomy?: string;
   workdir?: string;
-  prompt?: string;
-  idle_timeout?: string;
+  system_prompt?: string;
 };
 
 export type Chat = Agent & { jid: string; name?: string };
 
-export type Config = { defaults: Agent; chats: Chat[] };
+export type Config = { chats: Chat[] };
 
 export type Group = { jid: string; name: string; size: number };
 
+export type Person = { jid: string; name?: string };
+
+export type Status = {
+  state: 'starting' | 'linking' | 'connected' | 'logging_out';
+  me?: { id: string; lid?: string; name?: string };
+  number?: string; // the linked number, while connected
+  config_path?: string;
+  error?: string; // why the last connection failed
+  qr?: string; // the code to scan while linking, as an image
+};
+
 export type State = {
   config_path: string;
-  chats_dir: string; // each chat's default workdir lives under here
-  linked: string; // phone number of the linked account, "" if not linked
-  me: string; // own JID ("Message yourself"), "" if unknown
+  chats_dir: string; // each chat's default folder lives under here
   config: Config;
-  groups: Group[];
-  groups_updated: string; // RFC 3339, "" if never fetched
 };
 
 const token = new URLSearchParams(location.hash.slice(1)).get('t') ?? '';
@@ -40,9 +47,12 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
 }
 
 export const api = {
+  status: () => call<Status>('GET', '/api/status'),
   state: () => call<State>('GET', '/api/state'),
   save: (config: Config) => call<{ ok: boolean }>('PUT', '/api/config', config),
-  refreshGroups: () => call<{ groups: Group[]; groups_updated: string }>('POST', '/api/groups'),
+  groups: () => call<{ groups: Group[] }>('GET', '/api/groups'),
+  people: () => call<{ people: Person[] }>('GET', '/api/people'),
+  logout: () => call<{ ok: boolean }>('POST', '/api/logout'),
   pickDir: (start: string) => call<{ path: string }>('POST', '/api/pick-dir', { start }),
   checkDir: (path: string) => call<{ ok: boolean; path: string; error?: string }>('POST', '/api/check-dir', { path }),
 };

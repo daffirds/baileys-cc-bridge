@@ -1,5 +1,5 @@
-// Package webui serves the config UI: the Vite app in web/ (built into dist/ and embedded) plus a
-// JSON API on 127.0.0.1. API calls need the random token from the printed link, and requests from
+// Package webui serves the panel: the Vite app in web/ (built into dist/ and embedded) plus a JSON
+// API, on 127.0.0.1 inside `run`. API calls need the token from the panel's link, and requests from
 // other hosts or origins are refused, so other sites open in the browser can't use it.
 package webui
 
@@ -16,46 +16,78 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"os/exec"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/daffirds/bailey-cc-bridge/internal/app"
+	"github.com/daffirds/bailey-cc-bridge/internal/whatsapp"
 )
 
 //go:embed all:dist
 var dist embed.FS
 
+// Account is the running bridge's WhatsApp side, as the panel sees it.
+type Account interface {
+	Status() Status
+	Groups(ctx context.Context) ([]whatsapp.Group, error)
+	// Logout unlinks the number and starts linking again. It returns at once; Status follows.
+	Logout()
+}
+
+// Status is where the WhatsApp side stands.
+type Status struct {
+	State      string       `json:"state"` // starting | linking | connected | logging_out
+	QR         string       `json:"-"`     // the code to scan while linking
+	Me         *whatsapp.Me `json:"me,omitempty"`
+	ConfigPath string       `json:"config_path,omitempty"` // the linked number's config, while connected
+	Error      string       `json:"error,omitempty"`       // why the last connection failed
+}
+
 type Options struct {
-	Addr string // host:port; the host must be loopback
-	Open bool   // open the link in the default browser
-	Log  *slog.Logger
+	Addr    string // host:port; the host must be loopback
+	Account Account
+	Log     *slog.Logger
 }
 
 type server struct {
-	token string
-	log   *slog.Logger
+	token   string
+	account Account
+	log     *slog.Logger
 }
 
-// Serve runs the UI until ctx is cancelled.
-func Serve(ctx context.Context, o Options) error {
+// LinkFile holds the running panel's link, for `bailey-cc-bridge ui`.
+func LinkFile() string { return filepath.Join(app.Home(), "panel.url") }
+
+// Start serves the panel until ctx ends and returns its link, which it also writes to LinkFile.
+func Start(ctx context.Context, o Options) (string, error) {
 	host, _, err := net.SplitHostPort(o.Addr)
 	if err != nil {
-		return fmt.Errorf("-addr: %w", err)
+		return "", fmt.Errorf("-addr: %w", err)
 	}
 	if ip := net.ParseIP(host); host != "localhost" && (ip == nil || !ip.IsLoopback()) {
-		return errors.New("-addr must be a loopback address (127.0.0.1 or localhost)")
+		return "", errors.New("-addr must be a loopback address (127.0.0.1 or localhost)")
+	}
+	token, err := loadToken()
+	if err != nil {
+		return "", err
 	}
 	ln, err := net.Listen("tcp", o.Addr)
 	if err != nil {
-		// The port is taken (another `ui`?): any free one will do.
+		// The port is taken: any free one will do; `ui` finds it in LinkFile.
 		if ln, err = net.Listen("tcp", net.JoinHostPort(host, "0")); err != nil {
-			return err
+			return "", err
 		}
 	}
-	s := &server{token: randomHex(24), log: o.Log}
+	s := &server{token: token, account: o.Account, log: o.Log}
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/status", s.status)
 	mux.HandleFunc("GET /api/state", s.state)
 	mux.HandleFunc("PUT /api/config", s.saveConfig)
-	mux.HandleFunc("POST /api/groups", s.refreshGroups)
+	mux.HandleFunc("GET /api/groups", s.groups)
+	mux.HandleFunc("GET /api/people", s.people)
+	mux.HandleFunc("POST /api/logout", s.logout)
 	mux.HandleFunc("POST /api/pick-dir", s.pickDir)
 	mux.HandleFunc("POST /api/check-dir", s.checkDir)
 	sub, _ := fs.Sub(dist, "dist")
@@ -65,22 +97,40 @@ func Serve(ctx context.Context, o Options) error {
 		files.ServeHTTP(w, r)
 	})
 	srv := &http.Server{Handler: s.guard(mux), ReadHeaderTimeout: 10 * time.Second}
+	link := "http://" + ln.Addr().String() + "/#t=" + token
+	if err := os.WriteFile(LinkFile(), []byte(link+"\n"), 0o600); err != nil {
+		_ = ln.Close()
+		return "", err
+	}
 	go func() {
 		<-ctx.Done()
+		_ = os.Remove(LinkFile())
 		sctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 		_ = srv.Shutdown(sctx)
 	}()
+	go func() {
+		if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			o.Log.Error("panel stopped", "err", err)
+		}
+	}()
+	return link, nil
+}
 
-	link := "http://" + ln.Addr().String() + "/#t=" + s.token
-	fmt.Printf("Config UI: %s\nPress Ctrl-C to stop; the link only works while this runs.\n", link)
-	if o.Open {
-		_ = exec.Command("open", link).Start()
+// loadToken returns the panel's token. It is made once and kept in panel.token, so a bookmarked
+// link keeps working from one run to the next.
+func loadToken() (string, error) {
+	path := filepath.Join(app.Home(), "panel.token")
+	if b, err := os.ReadFile(path); err == nil {
+		if t := strings.TrimSpace(string(b)); len(t) >= 32 {
+			return t, nil
+		}
 	}
-	if err := srv.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return err
+	if err := os.MkdirAll(app.Home(), 0o700); err != nil {
+		return "", err
 	}
-	return nil
+	t := randomHex(24)
+	return t, os.WriteFile(path, []byte(t+"\n"), 0o600)
 }
 
 // guard refuses requests whose Host or Origin isn't this server (DNS rebinding, cross-site requests)
@@ -103,7 +153,7 @@ func (s *server) guard(next http.Handler) http.Handler {
 				return
 			}
 			if subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Bridge-Token")), []byte(s.token)) != 1 {
-				writeErr(w, http.StatusUnauthorized, errors.New("open the link printed by `bailey-cc-bridge ui`"))
+				writeErr(w, http.StatusUnauthorized, errors.New("open the panel with `bailey-cc-bridge ui`"))
 				return
 			}
 		}

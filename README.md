@@ -23,16 +23,18 @@ Needs macOS, Go 1.26+, Node 22.18+, and `claude` and/or `codex` installed and lo
 
 ```sh
 go build -o ~/.local/bin/bailey-cc-bridge ./cmd/bailey-cc-bridge
-bailey-cc-bridge login   # scan the QR: WhatsApp → Settings → Linked devices (or -phone for a code)
-bailey-cc-bridge ui      # pick chats, engines and working directories in the browser
-bailey-cc-bridge run     # foreground; Ctrl-C stops
+bailey-cc-bridge run     # foreground; Ctrl-C stops. Opens the panel while no number is linked
+bailey-cc-bridge ui      # opens the running bridge's panel
 ```
 
-The first command that connects installs the sidecar's npm packages under `~/.bailey-cc-bridge/sidecar`.
+`run` serves the panel on 127.0.0.1:7468: scan its QR code (WhatsApp → Settings → Linked devices),
+then pick chats, engines and folders. Logging out there unlinks the number and shows a new QR code,
+so another number can take over. The first connection installs the sidecar's npm packages under
+`~/.bailey-cc-bridge/sidecar`.
 
 ## Config
 
-`~/.bailey-cc-bridge/<number>/config.yaml`, edited with `ui` or by hand (see [config.example.yaml](config.example.yaml)).
+`~/.bailey-cc-bridge/<number>/config.yaml`, edited in the panel or by hand (see [config.example.yaml](config.example.yaml)).
 A running bridge applies changes within seconds.
 
 | Key | Default | |
@@ -66,18 +68,18 @@ the agent.
 
 | | |
 |---|---|
-| `run [-debug]` | bridge the configured chats |
-| `ui [-addr] [-no-open]` | config UI on 127.0.0.1 |
-| `login [-phone N]` · `logout` | link or unlink this Mac |
+| `run [-debug] [-addr] [-open]` | bridge the configured chats and serve the panel |
+| `ui` | open the running bridge's panel |
+| `login [-phone N]` · `logout` | link or unlink this Mac from the terminal |
 | `chats [filter]` | your JID and your groups' JIDs |
 
-Only one of `run`, `chats`, `login`, `logout` and the UI's group refresh can be connected to
-WhatsApp at a time: a second connection would make WhatsApp drop the first.
+Only one of `run`, `chats`, `login` and `logout` can be connected to WhatsApp at a time: a second
+connection would make WhatsApp drop the first.
 
 ## Files
 
-`~/.bailey-cc-bridge/` holds `auth/` (the linked device's WhatsApp credentials), `sidecar/` and
-one folder per number that has been linked, so another number never shares a chat's conversation:
+`~/.bailey-cc-bridge/` holds `auth/` (the linked device's WhatsApp credentials), `sidecar/`,
+`panel.token` (the panel link's token, kept so a bookmark keeps working) and one folder per number that has been linked, so another number never shares a chat's conversation:
 
 ```
 ~/.bailey-cc-bridge/<number>/
@@ -95,13 +97,13 @@ in git. The conversations themselves are the CLIs' own (`~/.claude/projects`, `~
 
 Anyone in a whitelisted group can steer an agent that has a shell on your Mac. Keep groups on
 `auto` or `readonly`, and use `full` only where you trust everyone. The tool endpoint and the
-config UI listen on loopback only, behind random tokens.
+panel listen on loopback only, behind random tokens.
 
 WhatsApp does not allow unofficial clients. Bans mostly hit bulk or unsolicited messaging, but use a
 spare number if yours matters.
 
 ## Development
 
-- `web/`: the config UI (Vite + React). `npm run build` writes `internal/webui/dist`, which is committed
+- `web/`: the panel (Vite + React). `npm run build` writes `internal/webui/dist`, which is committed
   and embedded.
 - `sidecar/`: the Baileys side. `npm run check` type-checks it; the binary embeds it.

@@ -3,12 +3,10 @@
 package whatsapp
 
 import (
-	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
 	"syscall"
-	"time"
 
 	"github.com/daffirds/bailey-cc-bridge/internal/app"
 )
@@ -32,28 +30,4 @@ func lockConnection() (*os.File, error) {
 		return nil, ErrBusy
 	}
 	return f, nil
-}
-
-func groupsPath() string { return filepath.Join(app.Home(), "groups.json") }
-
-type groupCache struct {
-	Updated time.Time `json:"updated"`
-	Groups  []Group   `json:"groups"`
-}
-
-// CachedGroups returns the group list from the last time a command fetched it (zero time if never),
-// so the config UI can offer groups without connecting while the bridge runs.
-func CachedGroups() ([]Group, time.Time) {
-	var c groupCache
-	if b, err := os.ReadFile(groupsPath()); err == nil {
-		_ = json.Unmarshal(b, &c)
-	}
-	return c.Groups, c.Updated
-}
-
-func saveGroups(groups []Group) {
-	b, err := json.Marshal(groupCache{Updated: time.Now(), Groups: groups})
-	if err == nil {
-		_ = os.WriteFile(groupsPath(), b, 0o600)
-	}
 }

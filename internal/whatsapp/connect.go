@@ -1,10 +1,21 @@
 package whatsapp
 
 import (
+	"cmp"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
+
+	"github.com/daffirds/bailey-cc-bridge/internal/app"
 )
+
+// ErrLoggedOut means WhatsApp unlinked this Mac: the device was removed on the phone, or a logout.
+var ErrLoggedOut = errors.New("WhatsApp logged this Mac out (the device was unlinked)")
 
 // Connect starts the sidecar and waits until it is connected to WhatsApp as the linked account.
 func Connect(ctx context.Context, o Options) (*Client, *Me, error) {
@@ -31,7 +42,11 @@ func Connect(ctx context.Context, o Options) (*Client, *Me, error) {
 				return nil, nil, errors.New("WhatsApp no longer accepts this Mac's credentials: run `bailey-cc-bridge logout`, then `login`")
 			case "closed":
 				_ = c.Close()
-				return nil, nil, ClosedError(ev.Reason)
+				err := ClosedError(ev.Reason)
+				if errors.Is(err, ErrLoggedOut) {
+					err = fmt.Errorf("%w: run `bailey-cc-bridge logout`, then link again", err)
+				}
+				return nil, nil, err
 			}
 		}
 	}
@@ -41,7 +56,7 @@ func Connect(ctx context.Context, o Options) (*Client, *Me, error) {
 func ClosedError(reason string) error {
 	switch reason {
 	case "logged_out":
-		return errors.New("WhatsApp logged this Mac out (the device was unlinked): run `bailey-cc-bridge logout`, then `login`")
+		return ErrLoggedOut
 	case "forbidden":
 		return errors.New("WhatsApp refused the connection (403): the number may be banned or restricted")
 	}
@@ -55,7 +70,7 @@ type Group struct {
 	Size int    `json:"size"`
 }
 
-// Groups lists the groups this account is in, and remembers them for CachedGroups.
+// Groups lists the groups this account is in, by name.
 func (c *Client) Groups(ctx context.Context) ([]Group, error) {
 	var res struct {
 		Groups []Group `json:"groups"`
@@ -63,6 +78,25 @@ func (c *Client) Groups(ctx context.Context) ([]Group, error) {
 	if err := c.Call(ctx, "chats", nil, &res); err != nil {
 		return nil, err
 	}
-	saveGroups(res.Groups)
+	slices.SortFunc(res.Groups, func(a, b Group) int { return cmp.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name)) })
 	return res.Groups, nil
+}
+
+// People are the people a linked number knows by name (the sidecar's names.json: saved contacts
+// and everyone seen in a chat), by name. Only phone-number JIDs: those are what a chat's jid takes.
+func People(number string) []Person {
+	var stored struct {
+		Names map[string]string `json:"names"`
+	}
+	if b, err := os.ReadFile(filepath.Join(app.AccountDir(number), "names.json")); err == nil {
+		_ = json.Unmarshal(b, &stored)
+	}
+	people := []Person{}
+	for jid, name := range stored.Names {
+		if strings.HasSuffix(jid, "@s.whatsapp.net") && name != "" && !strings.HasPrefix(jid, number+"@") {
+			people = append(people, Person{JID: jid, Name: name})
+		}
+	}
+	slices.SortFunc(people, func(a, b Person) int { return cmp.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name)) })
+	return people
 }

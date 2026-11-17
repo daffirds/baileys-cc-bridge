@@ -1,12 +1,10 @@
 package main
 
 import (
-	"cmp"
 	"context"
 	"flag"
 	"fmt"
 	"os"
-	"slices"
 	"strings"
 	"text/tabwriter"
 
@@ -34,7 +32,6 @@ func runChats(ctx context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	slices.SortFunc(groups, func(a, b whatsapp.Group) int { return cmp.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name)) })
 
 	fmt.Printf("You (your \"Message yourself\" chat):\n  %s\n\nGroups:\n", me.ID)
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
