@@ -46,13 +46,14 @@ folder and prompt:
 Before you add a group: anyone in it can ask the agent to do things on your Mac. Keep groups on
 `auto` or `readonly` ([Settings](#settings)), and use `full` only where you trust everyone.
 
-In a group it reads along and joins in when it can help, no tag needed:
+In a group it reads along and joins in when it can help, no tag needed, as in the picture at the
+top. In a direct chat every message is for it, and the chat's folder can be a project of yours:
 
-> **Ben:** we still need a place to stay 😅<br>
-> **You:** anyone know a good villa in Ubud for 4?<br>
-> **Mochi Bot:** Hey! Found 3 with a pool, all free that weekend 🏡 _Assisted by Claude_<br>
-> **Mochi Bot:** 📄 ubud-villas.pdf<br>
-> **Rina:** woah the 2nd one 😍 thanks Mochi Bot!
+> **You:** run the tests and tell me what fails<br>
+> **Mochi Bot:** 2 of 148 fail, both in `auth_test.go`. The token expiry check ignores timezones 🕐 _Assisted by Claude_<br>
+> **You:** fix it and send me the diff<br>
+> **Mochi Bot:** 📄 token-expiry.diff<br>
+> **Mochi Bot:** all green now ✅ _Assisted by Claude_
 
 ## How it works
 
