@@ -69,8 +69,9 @@ top. In a direct chat every message is for it, and the chat's folder can be a pr
   [Baileys](https://github.com/WhiskeySockets/Baileys).
 - Each chat you pick gets its own CLI session (`claude -p` or `codex app-server`), started by its
   first message and resumed after a restart.
-- Every new message goes into that session, mid-turn too.
-- The agent acts on WhatsApp through MCP tools bound to its chat. The bridge itself never writes.
+- Every new message goes into that session, even while the agent is in the middle of a task.
+- The agent acts on WhatsApp through MCP tools tied to its chat. Nothing is sent unless the agent
+  calls one; the bridge never posts anything of its own.
 - The CLIs use their own logins, so the work counts against your Claude or ChatGPT plan. The bridge
   talks only to WhatsApp and `127.0.0.1`.
 
@@ -85,13 +86,14 @@ top. In a direct chat every message is for it, and the chat's folder can be a pr
 | `chat_info` | a group's name, description and members, or who a direct chat is with |
 | `schedule_job` · `list_jobs` · `cancel_job` | a task back in the chat later: once (`in 10m`, `at` a local time) or on `cron` (`0 8 * * 1-5`) |
 
-`chat` points a tool at another chat you picked, never at one outside the list. Incoming attachments
-are saved in the agent's folder, and the agent gets the path.
+A tool acts on its own chat. The send tools and `chat_info` also take `chat`, to act on another chat
+instead, but only one you picked in the panel. Incoming attachments are saved in the agent's folder,
+and the agent gets the path.
 
 ## Settings
 
 The panel edits `~/.baileys-cc-bridge/<number>/config.yaml` ([example](config.example.yaml)). A change
-reaches a chat's agent with the next message, once it is idle.
+applies from the chat's next message, after the agent has finished what it was doing.
 
 | Key | Default | |
 |---|---|---|
@@ -104,9 +106,10 @@ reaches a chat's agent with the next message, once it is idle.
 
 ## Good to know
 
-- **Off means missed.** Messages that arrive while the bridge or the Mac is off are not replayed.
-- **One connection.** `run`, `login`, `logout` and `chats` each connect to WhatsApp, and only one can
-  at a time.
+- If the bridge or the Mac is off, the messages that arrive meanwhile are lost. It doesn't catch up
+  afterwards.
+- Only one process can be connected to WhatsApp at a time, and `run`, `login`, `logout` and `chats`
+  each connect. While the bridge is running, the others refuse to start.
 
 ## Commands
 
@@ -120,7 +123,8 @@ reaches a chat's agent with the next message, once it is idle.
 
 After `npm update -g baileys-cc-bridge`, run `install` again to restart on the new version. Everything
 lives in `~/.baileys-cc-bridge/`: the linked device, `bridge.log`, and one folder per linked number
-with its settings and its chats' sessions. The conversations themselves are the CLIs' own.
+with its settings and its chats' sessions. The transcripts stay where Claude Code and Codex keep
+their own.
 
 ## Building from source
 
