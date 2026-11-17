@@ -1,7 +1,7 @@
 {
   "name": "baileys-cc-bridge",
   "version": "0.1.0",
-  "description": "Every message in the WhatsApp chats you pick goes to a Claude Code or Codex session on your Mac.",
+  "description": "Give an AI agent a WhatsApp number and a computer: Claude Code or Codex, running on your Mac.",
   "keywords": [
     "whatsapp",
     "baileys",
