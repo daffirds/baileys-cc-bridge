@@ -6,7 +6,7 @@ chats:
   - jid: 6281234567890@s.whatsapp.net   # a phone number such as "+62 812-3456-7890" works too
     name: Me
     engine: claude                      # claude (default) | codex
-    autonomy: auto                      # auto (default: the engine's own reviewer) | full (no prompts) | readonly
+    autonomy: full                      # full (default: no prompts, no sandbox) | auto (the engine's own reviewer) | readonly
     model: ""                           # "" = the CLI's default
 
   - jid: 120363012345678901@g.us

@@ -41,7 +41,7 @@ type Agent struct {
 	Engine   string `yaml:"engine,omitempty" json:"engine,omitempty"`     // claude (default) | codex
 	Model    string `yaml:"model,omitempty" json:"model,omitempty"`       // "" = the CLI's own default
 	Effort   string `yaml:"effort,omitempty" json:"effort,omitempty"`     // reasoning effort; "" = the model's default
-	Autonomy string `yaml:"autonomy,omitempty" json:"autonomy,omitempty"` // auto (default) | full | readonly
+	Autonomy string `yaml:"autonomy,omitempty" json:"autonomy,omitempty"` // full (default) | auto | readonly
 	// Workdir is where the agent runs. "" = the chat's own folder under ~/.baileys-cc-bridge/chats.
 	Workdir string `yaml:"workdir,omitempty" json:"workdir,omitempty"`
 	// SystemPrompt is what the chat's agent is told after the bridge's own fixed instructions; ""
@@ -158,7 +158,7 @@ func (c *Config) normalize() error {
 			ch.Engine = EngineClaude
 		}
 		if ch.Autonomy == "" {
-			ch.Autonomy = AutonomyAuto
+			ch.Autonomy = AutonomyFull
 		}
 		if err := ch.Agent.validate(); err != nil {
 			return fmt.Errorf("chat %s: %w", ch.Name, err)

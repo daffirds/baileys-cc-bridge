@@ -92,7 +92,7 @@ applies from the chat's next message, after the agent has finished what it was d
 |---|---|---|
 | `engine` | `claude` | `claude` or `codex` |
 | `model`, `effort` | the CLI's | |
-| `autonomy` | `auto` | `auto`: the engine's own reviewer · `full`: no prompts, no sandbox · `readonly` |
+| `autonomy` | `full` | `full`: no prompts, no sandbox · `auto`: the engine's own reviewer · `readonly` |
 | `workdir` | the chat's own folder | where the agent runs |
 | `system_prompt` | one for groups, one for direct chats | added after the bridge's fixed instructions on how to use WhatsApp |
 | `footer` | `true` | _Assisted by Claude_ (or _Codex_) under what the agent sends; handy on your own number |

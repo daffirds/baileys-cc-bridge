@@ -4,8 +4,8 @@ import { Icon, type IconName } from './icons';
 
 const ENGINES: Record<string, string> = { claude: 'Claude', codex: 'Codex' };
 const AUTONOMY: Record<string, string> = {
-  auto: 'Auto — a safety check reviews risky steps',
   full: 'Full access — no prompts, no sandbox',
+  auto: 'Auto — a safety check reviews risky steps',
   readonly: 'Read-only — can look, can’t change',
 };
 
@@ -533,7 +533,7 @@ function AgentFields({ value, onChange, defaultDir }: { value: Chat; onChange: (
         <Segmented value={engine} options={ENGINES} onChange={(v) => v !== engine && set({ engine: v, model: '', effort: '' })} />
       </Field>
       <Field label="Permissions">
-        <select value={value.autonomy || 'auto'} onChange={(e) => set({ autonomy: e.target.value })}>
+        <select value={value.autonomy || 'full'} onChange={(e) => set({ autonomy: e.target.value })}>
           {Object.entries(AUTONOMY).map(([v, label]) => (
             <option key={v} value={v}>
               {label}
@@ -754,14 +754,14 @@ function ChatCard({ index, chat, me, state, defaultDir, onSave, onRemove, onUnsa
   );
 }
 
-// Summary sums up a folded card's agent: engine, model, and effort and permissions when set.
+// Summary sums up a folded card's agent: engine, model, and effort and permissions when not the default.
 function Summary({ chat }: { chat: Chat }) {
   const engine = chat.engine || 'claude';
   const { models } = useModels(engine);
   const parts = [ENGINES[engine] ?? engine, chat.model ? (models?.find((m) => m.id === chat.model)?.name ?? chat.model) : 'Default model'];
   if (chat.effort) parts.push(`${effortName(chat.effort)} effort`);
-  if (chat.autonomy === 'full') parts.push('Full access');
-  if (chat.autonomy === 'readonly') parts.push('Read-only');
+  const autonomy = chat.autonomy || 'full';
+  if (autonomy !== 'full') parts.push(AUTONOMY[autonomy]?.split(' — ')[0] ?? autonomy);
   return (
     <div className="summary">
       {parts.map((p) => (
