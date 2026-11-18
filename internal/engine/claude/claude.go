@@ -59,6 +59,11 @@ func (Engine) Start(_ context.Context, spec engine.Spec) (_ engine.Session, err 
 	}
 	// The WhatsApp tools are pre-approved: they must never wait for a permission prompt.
 	args = append(args, "--mcp-config="+mcpFile, "--allowedTools=mcp__"+spec.MCP.Name)
+	// Claude in Chrome lets the agent use the browser, signed in as the owner. Print mode only turns
+	// it on when asked. Without Chrome the session still runs; the agent is told it has no browser.
+	if strings.Contains(help, "--chrome") {
+		args = append(args, "--chrome")
+	}
 	switch spec.Autonomy {
 	case config.AutonomyFull:
 		args = append(args, "--permission-mode=bypassPermissions")
