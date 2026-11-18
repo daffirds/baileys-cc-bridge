@@ -1,22 +1,25 @@
+/* Each color is light-dark(light, dark): the system picks, unless the panel's toggle set
+   data-theme on <html>. */
 :root {
-  --bg: #f3f5f4;
-  --card: #ffffff;
-  --text: #17201b;
-  --muted: #69766f;
-  --line: #e3e8e5;
-  --line-strong: #cfd8d3;
-  --field: #f8faf9;
-  --accent: #00a884;
-  --accent-strong: #008069;
-  --on-accent: #ffffff;
-  --accent-soft: #e2f5ee;
-  --accent-ink: #00684f;
-  --danger: #d92d20;
-  --danger-soft: #fdecea;
+  color-scheme: light dark;
+  --bg: light-dark(#f3f5f4, #0e1311);
+  --card: light-dark(#ffffff, #161d1a);
+  --text: light-dark(#17201b, #e5ebe8);
+  --muted: light-dark(#69766f, #8d9c95);
+  --line: light-dark(#e3e8e5, #25302b);
+  --line-strong: light-dark(#cfd8d3, #34433c);
+  --field: light-dark(#f8faf9, #111815);
+  --accent: light-dark(#00a884, #21c28e);
+  --accent-strong: light-dark(#008069, #00a884);
+  --on-accent: light-dark(#ffffff, #03140e);
+  --accent-soft: light-dark(#e2f5ee, rgb(33 194 142 / 14%));
+  --accent-ink: light-dark(#00684f, #6be3ba);
+  --danger: light-dark(#d92d20, #f97066);
+  --danger-soft: light-dark(#fdecea, rgb(249 112 102 / 12%));
   --amber: #f79009;
-  --ring: rgb(0 168 132 / 22%);
-  --shadow: 0 1px 2px rgb(16 24 20 / 5%), 0 6px 20px rgb(16 24 20 / 5%);
-  --shadow-lg: 0 24px 64px rgb(16 24 20 / 22%);
+  --ring: light-dark(rgb(0 168 132 / 22%), rgb(33 194 142 / 25%));
+  --shadow: 0 1px 2px light-dark(rgb(16 24 20 / 5%), rgb(0 0 0 / 30%)), 0 6px 20px light-dark(rgb(16 24 20 / 5%), rgb(0 0 0 / 18%));
+  --shadow-lg: 0 24px 64px light-dark(rgb(16 24 20 / 22%), rgb(0 0 0 / 55%));
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   font: 15px/1.5 'Figtree Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   color: var(--text);
@@ -24,26 +27,12 @@
   -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0e1311;
-    --card: #161d1a;
-    --text: #e5ebe8;
-    --muted: #8d9c95;
-    --line: #25302b;
-    --line-strong: #34433c;
-    --field: #111815;
-    --accent: #21c28e;
-    --accent-strong: #00a884;
-    --on-accent: #03140e;
-    --accent-soft: rgb(33 194 142 / 14%);
-    --accent-ink: #6be3ba;
-    --danger: #f97066;
-    --danger-soft: rgb(249 112 102 / 12%);
-    --ring: rgb(33 194 142 / 25%);
-    --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 6px 20px rgb(0 0 0 / 18%);
-    --shadow-lg: 0 24px 64px rgb(0 0 0 / 55%);
-  }
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
 }
 
 * {
@@ -462,8 +451,8 @@ button.link:hover {
   border-radius: 50%;
   font-size: 16px;
   font-weight: 700;
-  color: hsl(var(--h) 45% 30%);
-  background: hsl(var(--h) 65% 91%);
+  color: light-dark(hsl(var(--h) 45% 30%), hsl(var(--h) 70% 78%));
+  background: light-dark(hsl(var(--h) 65% 91%), hsl(var(--h) 32% 21%));
 }
 
 .avatar.small {
@@ -475,13 +464,6 @@ button.link:hover {
 .avatar.you {
   color: var(--accent-ink);
   background: var(--accent-soft);
-}
-
-@media (prefers-color-scheme: dark) {
-  .avatar {
-    color: hsl(var(--h) 70% 78%);
-    background: hsl(var(--h) 32% 21%);
-  }
 }
 
 .who {
@@ -623,7 +605,8 @@ button.icon-button.primary:hover {
   background: color-mix(in srgb, var(--accent-strong) 88%, #000000);
 }
 
-.actions .icon {
+.actions .icon,
+.theme-toggle .icon {
   animation: pop-in 0.25s var(--ease);
 }
 

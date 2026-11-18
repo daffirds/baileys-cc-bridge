@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { api, type Agent, type Chat, type EngineHealth, type Group, type Model, type Person, type State, type Status } from './api';
 import { Icon, type IconName } from './icons';
+import { ThemeToggle } from './theme';
 
 const ENGINES: Record<string, string> = { claude: 'Claude', codex: 'Codex' };
 const AUTONOMY: Record<string, string> = {
@@ -121,6 +122,7 @@ export function App() {
     <main className="page">
       <header className="top">
         <Brand />
+        <ThemeToggle />
       </header>
       <Linking status={status} />
       {error && <p className="error">{error}</p>}
@@ -244,6 +246,7 @@ function Panel({ status }: { status: Status }) {
         </Brand>
         <div className="row">
           <EngineStatus />
+          <ThemeToggle />
           <button type="button" className="ghost" onClick={() => setLeaving(true)}>
             <Icon name="logout" size={16} />
             Log out
