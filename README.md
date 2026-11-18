@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="A WhatsApp group planning a trip. Ben says they still need a place to stay, you ask if anyone knows a good villa, and Mochi Bot, an AI agent with its own number, answers with three options and a PDF it made, signed Assisted by Claude. Rina thanks it. Next to the chat, the agent as a robot at its computer, reading the chat on its phone." src="assets/banner.svg" width="100%">
+  <img alt="A WhatsApp group on movie night. Ben says there's nothing to eat, you ask if anyone wants to order, and Rina wants pizza with extra cheese. Mochi Bot, an AI agent with its own number, sends a screenshot of the pizza cart it filled on GrabFood and asks whether to order. You say go, and it confirms the order, signed Assisted by Claude. Next to the chat, the agent as a robot at its computer, ordering on a food delivery site." src="assets/banner.svg" width="100%">
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@ Claude Code or Codex session.
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/how-it-works.svg">
     <source media="(prefers-color-scheme: light)" srcset="assets/how-it-works-light.svg">
-    <img alt="Every message in the WhatsApp group goes into the agent's Claude Code session on your Mac; it stays quiet on Ben's. On yours it runs commands, and its tool calls come back as the chat's next bubbles: send_message as Mochi Bot's answer, send_file as the PDF, and react as the heart on Rina's thanks." src="assets/how-it-works-light.svg" width="100%">
+    <img alt="Every message in the WhatsApp group goes into the agent's Claude Code session on your Mac; it stays quiet on Ben's. On yours it opens GrabFood in the browser and fills a cart, reacting to Rina's extra cheese on the way. Its tool calls come back as the chat's next bubbles: send_file as the cart screenshot asking whether to order, and after your go, send_message as the order confirmation." src="assets/how-it-works-light.svg" width="100%">
   </picture>
 </p>
 
