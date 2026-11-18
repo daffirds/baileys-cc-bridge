@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="A WhatsApp group on movie night. Ben says there's nothing to eat, you ask if anyone wants to order, and Rina wants pizza with extra cheese. Mochi Bot, an AI agent with its own number, sends a screenshot of the pizza cart it filled on GrabFood and asks whether to order. You say go, and it confirms the order, signed Assisted by Claude. Next to the chat, the agent as a robot at its computer, ordering on a food delivery site." src="assets/banner.svg" width="100%">
+  <img alt="A WhatsApp group on movie night. Ben says there's nothing to eat, you ask if anyone wants to order, and Rina wants pizza with extra cheese. Mochi Bot, an AI agent with its own number, sends a screenshot of the pizza cart it filled on GrabFood and asks whether to order. You say go, and it confirms the order, signed Assisted by Claude. Next to the chat, the agent as a robot on a sofa, ordering on a food delivery site from its laptop." src="assets/banner.svg" width="100%">
 </p>
 
 <p align="center">
