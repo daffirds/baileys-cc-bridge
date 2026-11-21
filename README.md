@@ -41,7 +41,7 @@ Claude Code or Codex session.
 You need macOS, Node 22.18+, and Claude Code and/or Codex installed and logged in.
 
 > [!TIP]
-> Run this on your always-on Mac mini server.
+> _Run this on your always-on Mac mini server._
 
 Run in the terminal:
 
