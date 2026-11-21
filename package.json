@@ -1,6 +1,6 @@
 {
   "name": "baileys-cc-bridge",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Give an AI agent a WhatsApp number and a computer: Claude Code or Codex, running on your Mac.",
   "keywords": [
     "whatsapp",
