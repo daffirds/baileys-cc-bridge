@@ -40,9 +40,10 @@ Claude Code or Codex session.
 
 You need macOS, Node 22.18+, and Claude Code and/or Codex installed and logged in.
 
-> **Best practice:**
->
+> [!TIP]
 > Run this on your always-on Mac mini server.
+
+Run in the terminal:
 
 ```sh
 npm install -g baileys-cc-bridge
