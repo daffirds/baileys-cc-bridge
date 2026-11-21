@@ -40,6 +40,10 @@ Claude Code or Codex session.
 
 You need macOS, Node 22.18+, and Claude Code and/or Codex installed and logged in.
 
+> **Best practice:**
+>
+> Run this on your always-on Mac mini server.
+
 ```sh
 npm install -g baileys-cc-bridge
 baileys-cc-bridge install        # runs in the background from now on, and opens its panel
@@ -125,10 +129,9 @@ With Go 1.26: `go build -o ~/.local/bin/baileys-cc-bridge ./cmd/baileys-cc-bridg
 panel (Vite + React; `npm run build` writes the embedded `internal/webui/dist`), `sidecar/` the
 Baileys side, and `scripts/build-npm.sh` builds the binary the npm package ships.
 
-## Why I made this
+## Bottom note
 
-Honestly, for my family haha. It lives on my home server and hangs out in our family group, telling
-everyone to chill when we start arguing 😅 My mom also uses it for our prayer reminders.
+Personally I built this as my home agent, it pays bills, buys things on Shopee, etc. It lives on my home server and hangs out in our family group, telling everyone to chill when we start arguing. 😅 My mom also uses it for our prayer reminders.
 
 ## License
 
